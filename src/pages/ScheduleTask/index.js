@@ -205,7 +205,7 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
         boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.15)', // Shadow around the modal
       },
     }}>
-      <DialogTitle>Check your task if you can perform it.</DialogTitle>
+      <DialogTitle>Check your task if you can perform it.</DialogTitle> 
       <DialogContent sx={{ overflowY: 'auto', flexGrow: 1 }}>
         <Box sx={{ padding: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
           {loading && <CircularProgress />}

@@ -28,6 +28,34 @@ export default function Welcome() {
     checkUserStatus();
   }, [router]);
 
+  useEffect(() => {
+    // Trigger the API when the component mounts
+    const fetchWeatherData = async () => {
+      try {
+        const response = await fetch('/api/fetchWeatherData', {
+          method: 'POST', // You are sending a POST request
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch weather data');
+        }
+
+        const data = await response.json();
+        console.log('Weather data inserted successfully:', data);
+      } catch (error) {
+        console.error('Error triggering weather data fetch:', error);
+      }
+    };
+
+    fetchWeatherData(); // Call the function to fetch weather data
+
+  }, []); // Empty dependency array means this will run once when the component mounts
+
+
+
   // Render the WelcomeDashboard component for the welcome page
   return (
     <>

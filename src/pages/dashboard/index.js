@@ -21,7 +21,6 @@
   const Dashboard = () => {
     const [greetingMessage, setGreetingMessage] = useState("");
     const [temperature, setTemperature] = useState(null);
-    const [weatherCondition, setWeatherCondition] = useState("");
     const [location, setLocation] = useState(""); 
     const [selectedDate, setSelectedDate] = useState(null);
     const [selectedTime, setSelectedTime] = useState(null);
@@ -34,6 +33,8 @@
     const [drawerOpen, setDrawerOpen] = useState(false); // State to control drawer
     const [notifications, setNotifications] = useState([]); // State for notifications
     const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false); // State for the notification drawer
+    const [weatherId, setWeatherId] = useState(null);
+
     
 
 
@@ -61,26 +62,6 @@
       });
     };
 
-    useEffect(() => {
-      const fetchWeatherData = async () => {
-        try {
-          const response = await fetch('/api/fetchexample', {
-            method: 'POST',
-          });
-  
-          if (!response.ok) {
-            throw new Error('Failed to fetch weather data');
-          }
-  
-          const data = await response.json();
-          console.log('Weather data fetched and stored:', data);
-        } catch (error) {
-          console.error(error);
-        }
-      };
-  
-      fetchWeatherData();
-    }, []); // Runs only once on load
   
     
     const fetchCurrentWeatherData = async (lat, lon) => {
@@ -89,13 +70,16 @@
       setSelectedTime(dayjs().format('HH:mm')); // Add current time when fetching current weather
       const apiUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
       console.log(`Fetching current weather data from: ${apiUrl}`);
-
+    
       try {
         const currentWeatherResponse = await axios.get(apiUrl);
         const currentWeather = currentWeatherResponse.data;
+        console.log("Fetched Current Weather Data:", currentWeather); // Log the fetched weather data
+        
+        // Set weather ID from API response
+        setWeatherId(currentWeather.weather[0].id); // Add this line
         setCurrentWeatherData(currentWeather);
         setTemperature(Math.round(currentWeather.main.temp));
-        setWeatherCondition(currentWeather.weather[0].description);
         showSuccessToast("Current Weather data fetched successfully!");
       } catch (error) {
         showErrorToast("Failed to fetch current weather data.");
@@ -103,33 +87,52 @@
         setLoading(false);
       }
     };
-
-    const fetchWeatherData = async (lat, lon) => {
+    
+    const fetchWeatherData = async () => {
       setLoading(true);
-      setIsCurrentWeather(false); // Set to forecasted weather
-      const apiUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
-      console.log(`Fetching forecasted weather data from: ${apiUrl}`);
-
+      setIsCurrentWeather(false);
+    
       try {
-        const forecastResponse = await axios.get(apiUrl);
-        const forecastData = forecastResponse.data.list.filter(item => item.dt_txt.startsWith(selectedDate));
+        const response = await axios.get('/api/getWeatherData');
+        const forecastData = response.data;
+    
+        // Log the forecast data to check the fetched data
+        console.log('Fetched Forecast Data:', forecastData);
+    
+        // Find the correct forecast ID for the selected date and time
         const selectedDateTime = dayjs(`${selectedDate} ${selectedTime}`);
-        const matchedWeather = forecastData.find(item => dayjs(item.dt_txt).isSame(selectedDateTime, 'hour'));
-
-        if (matchedWeather) {
-          setWeatherData(matchedWeather);
-          setTemperature(Math.round(matchedWeather.main.temp));
-          setWeatherCondition(matchedWeather.weather[0].description);
+        const matchedForecast = forecastData.find(item =>
+          dayjs(`${item.date} ${item.time}`).isSame(selectedDateTime, 'hour')
+        );
+    
+        if (matchedForecast) {
+          const { id } = matchedForecast; // Get the ID of the matched forecast
+    
+          // Fetch the full details for the matched forecast by ID
+          const detailResponse = await axios.get(`/api/getWeatherData?id=${id}`);
+          const detailedData = detailResponse.data;
+    
+          // Log the detailed weather data
+          console.log('Fetched Detailed Weather Data:', detailedData);
+    
+          setWeatherId(detailedData.weather_id);
+          setWeatherData(detailedData);
+          setTemperature(Math.round(detailedData.temperature));
           showSuccessToast("Forecasted Weather data fetched successfully!");
         } else {
           showErrorToast("No weather data available for the selected time.");
         }
       } catch (error) {
+        console.error('Error fetching weather data:', error);
         showErrorToast("Failed to fetch weather data.");
       } finally {
         setLoading(false);
       }
     };
+    
+    
+    
+    
 
     useEffect(() => {
       const currentGreeting = greeting(new Date());
@@ -253,12 +256,12 @@
           {/* Weather Display Component */}
           <WeatherDisplay 
             temperature={temperature} 
-            weatherCondition={weatherCondition} 
+            weatherCondition={weatherId} // Changed to pass weatherId instead of description
             isCurrentWeather={isCurrentWeather} 
             location={submittedLocation}
             selectedLocation={submittedLocation}
             selectedDate={submittedDate}
-            selectedTime={selectedTime} // Make sure this prop is passed
+            selectedTime={selectedTime}
           />
 
           {/* Recommended Task Component */}

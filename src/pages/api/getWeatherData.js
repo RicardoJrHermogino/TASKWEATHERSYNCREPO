@@ -9,33 +9,36 @@ const dbConfig = {
 };
 
 export default async function handler(req, res) {
-  if (req.method === 'GET') {
-    const connection = await mysql.createConnection(dbConfig);
-    
-    try {
-      // Query to fetch all weather data from the database
-      const [rows] = await connection.query('SELECT * FROM forecast_data');
-      
-      // Format the date before sending it to the frontend
-      const formattedData = rows.map(row => {
-        const date = new Date(row.date); // Assuming 'date' is stored in ISO format
-        const formattedDate = date.toISOString().split('T')[0]; // "YYYY-MM-DD"
-        
-        return {
-          ...row,
-          date: formattedDate, // Update the 'date' field with formatted date
-        };
-      });
+  const connection = await mysql.createConnection(dbConfig);
 
-      // Respond with the formatted data
-      res.status(200).json(formattedData);
-    } catch (error) {
-      console.error('Error fetching weather data:', error);
-      res.status(500).json({ error: 'Failed to fetch weather data' });
-    } finally {
-      await connection.end();
+  try {
+    if (req.method === 'GET') {
+      const { id } = req.query;
+      
+      let query = 'SELECT * FROM forecast_data';
+      const queryParams = [];
+
+      // If id is provided, modify the query to get only the specific entry
+      if (id) {
+        query += ' WHERE id = ?';
+        queryParams.push(id);
+      }
+
+      const [rows] = await connection.query(query, queryParams);
+
+      const formattedData = rows.map(row => ({
+        ...row,
+        date: new Date(row.date).toISOString().split('T')[0],
+      }));
+
+      res.status(200).json(id ? formattedData[0] : formattedData); // If id is provided, return only one item
+    } else {
+      res.status(405).json({ message: 'Method not allowed' });
     }
-  } else {
-    res.status(405).json({ message: 'Method not allowed' });
+  } catch (error) {
+    console.error('Error fetching weather data:', error);
+    res.status(500).json({ error: 'Failed to fetch weather data' });
+  } finally {
+    await connection.end();
   }
 }

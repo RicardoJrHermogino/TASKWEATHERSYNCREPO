@@ -11,23 +11,14 @@ export const getConnection = async () => {
   return await pool.getConnection();
 };
 
-// export const getTasksFromDatabase = async () => {
-//   try {
-//     const [rows] = await pool.execute('SELECT * FROM coconut_tasks');
-//     return rows;
-//   } catch (error) {
-//     console.error('Database query error:', error);
-//     throw new Error('Failed to fetch tasks');
-//   }
-// };
+export const getTasksFromDatabase = async () => {
+  try {
+    const [rows] = await pool.execute('SELECT * FROM coconut_tasks');
+    return rows;
+  } catch (error) {
+    console.error('Database query error:', error);
+    throw new Error('Failed to fetch tasks');
+  }
+};
 
 
-// export const getForecastDataFromDatabase = async () => {
-//   try {
-//     const [rows] = await pool.execute('SELECT * FROM forecast_data');
-//     return rows;
-//   } catch (error) {
-//     console.error('Database query error:', error);
-//     throw new Error('Failed to fetch tasks');
-//   }
-// };

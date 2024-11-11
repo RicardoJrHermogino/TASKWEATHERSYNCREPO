@@ -17,149 +17,183 @@ const isNightTime = (date, time, isCurrentWeather) => {
   return hour < 6 || hour >= 18;
 };
 
-const getWeatherIcon = (condition, selectedDate, selectedTime, isCurrentWeather) => {
+const getWeatherIcon = (weatherId, selectedDate, selectedTime, isCurrentWeather) => {
   const nightTime = isNightTime(selectedDate, selectedTime, isCurrentWeather);
-  
-  switch (condition.toLowerCase()) {
-    case "clear sky":
+
+  switch (weatherId) {
+    // Clear Sky
+    case 800:
       return nightTime ? "/3d-weather-icons/moon/10.png" : "/3d-weather-icons/sun/26.png";
-    case "few clouds":
+    
+    // Clouds
+    case 801:  // Few clouds
+    case 802:  // Scattered clouds
+    case 803:  // Broken clouds
       return nightTime ? "/3d-weather-icons/moon/23.png" : "/3d-weather-icons/sun/23.png";
-    case "scattered clouds":
-      return nightTime ? "/3d-weather-icons/moon/15.png" : "/3d-weather-icons/sun/27.png";
-    case "broken clouds":
-      return  "/3d-weather-icons/sun/26.png";
-    case "overcast clouds":
-      return  "/3d-weather-icons/cloud/35.png";
-
-      case "light rain":
-        return nightTime ? "/3d-weather-icons/moon/1.png" : "/3d-weather-icons/sun/8.png";
-      case "moderate rain":
-        return nightTime ? "/3d-weather-icons/moon/1.png" : "/3d-weather-icons/sun/8.png";
-      case "heavy rain":
-      case "heavy intensity rain":
-      case "very heavy rain":
-      case "extreme rain":
-      case "light intensity shower rain":
-      case "shower rain":
-      case "heavy intensity shower rain":
-      case "ragged shower rain":
-        return "/3d-weather-icons/rain/39.png";
-      
-    case "thunderstorm":
-    case "thunderstorm with rain":
-    case "thunderstorm with light rain":
-    case "thunderstorm with heavy rain":
+    case 804:  // Overcast clouds
+      return "/3d-weather-icons/cloud/35.png";
+    
+    // Rain
+    case 500:  // Light rain
+    case 501:  // Moderate rain
+    case 502:  // Heavy rain
+    case 503:  // Very heavy rain
+    case 504:  // Extreme rain
+      return nightTime ? "/3d-weather-icons/moon/1.png" : "/3d-weather-icons/sun/8.png";
+    case 511:  // Freezing rain
+      return "/3d-weather-icons/rain/39.png";
+    case 520:  // Light intensity shower rain
+    case 521:  // Shower rain
+    case 522:  // Heavy intensity shower rain
+    case 531:  // Ragged shower rain
+      return "/3d-weather-icons/rain/39.png";
+    
+    // Thunderstorm
+    case 200:  // Thunderstorm with light rain
+    case 201:  // Thunderstorm with rain
+    case 202:  // Thunderstorm with heavy rain
+    case 210:  // Light thunderstorm
+    case 211:  // Thunderstorm
+    case 212:  // Heavy thunderstorm
+    case 221:  // Ragged thunderstorm
+    case 230:  // Thunderstorm with hail
+    case 231:  // Thunderstorm with hail (light)
+    case 232:  // Thunderstorm with hail (heavy)
       return nightTime ? "/3d-weather-icons/moon/20.png" : "/3d-weather-icons/cloud/17.png";
-
-    case "light snow":
-      return "/3d-weather-icons/snow/20.png" ;
-    case "moderate snow":
-    case "heavy snow":
-      return "/3d-weather-icons/snow/20.png" ;
-    case "sleet":
+    
+    // Snow
+    case 600:  // Light snow
+    case 601:  // Snow
+    case 602:  // Heavy snow
+    case 611:  // Sleet
+    case 612:  // Light sleet
+    case 613:  // Heavy sleet
       return "/3d-weather-icons/snow/20.png";
-    case "fog":
-    case "mist":
-    case "smoke":
-    case "haze":
-    case "dust":
-      return nightTime ? "/3d-weather-icons/moon/2.2.png": "/3d-weather-icons/cloud/1.png";
-    case "drizzle":
-    case "light intensity drizzle":
+    
+    // Mist, smoke, haze, dust, fog
+    case 701:  // Mist
+    case 711:  // Smoke
+    case 721:  // Haze
+    case 731:  // Dust
+    case 741:  // Fog
+    case 751:  // Sand
+    case 761:  // Dust
+    case 762:  // Ash
+      return nightTime ? "/3d-weather-icons/moon/2.2.png" : "/3d-weather-icons/cloud/1.png";
+    
+    // Drizzle
+    case 300:  // Light drizzle
+    case 301:  // Drizzle
+    case 302:  // Heavy drizzle
+    case 310:  // Light intensity drizzle rain
+    case 311:  // Drizzle rain
+    case 312:  // Heavy intensity drizzle rain
+    case 313:  // Showers of drizzle
+    case 314:  // Heavy showers of drizzle
+    case 321:  // Showers of rain
       return nightTime ? "/3d-weather-icons/moon/09.png" : "/3d-weather-icons/rain/09.png";
-    case "heavy intensity drizzle":
-      return nightTime ? "/3d-weather-icons/moon/10.png" : "/3d-weather-icons/rain/10.png";
+
     default:
-      return "/3d-weather-icons/default/01.png";
+      return "/3d-weather-icons/default/01.png"; // Default icon
   }
 };
 
-const mapWeatherCondition = (condition, selectedDate, isCurrentWeather) => {
-  switch (condition.toLowerCase()) {
-    case "clear sky":
+const mapWeatherCondition = (weatherId, selectedDate, isCurrentWeather) => {
+  switch (weatherId) {
+    case 800:
       return isNightTime(selectedDate, isCurrentWeather) ? "Clear Night" : "Sunny";
-    case "few clouds":
-    case "scattered clouds":
+    
+    case 801: 
+    case 802: 
+    case 803:
       return "Partly Cloudy";
-    case "broken clouds":
-      return isNightTime(selectedDate, isCurrentWeather) ? "Cloudy Night" : "Partly Cloudy";
-    case "overcast clouds":
+    case 804:
       return "Cloudy";
-    case "light rain":
+    
+    case 500: 
+    case 501:
       return "Light Rain";
-    case "moderate rain":
-      return "Moderate Rain";
-    case "rain":
-      return "Rainy";
-    case "heavy rain":
-    case "heavy intensity rain":
+    case 502: 
+    case 503:
       return "Heavy Rain";
-    case "very heavy rain":
-      return "Very Heavy Rain";
-    case "extreme rain":
+    case 504:
       return "Extreme Rain";
-    case "freezing rain":
+    case 511:
       return "Freezing Rain";
-    case "light rain shower":
-      return "Light Rain Shower";
-    case "moderate rain shower":
-      return "Moderate Rain Shower";
-    case "heavy rain shower":
-      return "Heavy Rain Shower";
-    case "light snow":
-      return "Light Snow";
-    case "moderate snow":
-      return "Snowy";
-    case "heavy snow":
-      return "Heavy Snow";
-    case "sleet":
-      return "Sleet";
-    case "thunderstorm with light rain":
-    case "thunderstorm with rain":
-    case "thunderstorm with heavy rain":
-      return "Thunderstorm with Rain";
-    case "light thunderstorm":
-    case "heavy thunderstorm":
+    case 520:
+    case 521:
+    case 522:
+      return "Rainy";
+    
+    case 200:
+    case 201:
+    case 202:
+    case 210:
+    case 211:
+    case 212:
+    case 221:
+    case 230:
+    case 231:
+    case 232:
       return "Thunderstorm";
-    case "thunderstorm with hail":
-      return "Thunderstorm with Hail";
-    case "mist":
-    case "smoke":
-    case "haze":
-    case "dust":
-    case "fog":
-    case "sand":
-    case "ash":
+    
+    case 600:
+    case 601:
+    case 602:
+      return "Snowy";
+    case 611:
+    case 612:
+    case 613:
+      return "Sleet";
+    
+    case 701:
+    case 711:
+    case 721:
+    case 731:
+    case 741:
+    case 751:
+    case 761:
+    case 762:
+    case 771:
+    case 781:
       return "Foggy";
-    case "drizzle":
-    case "light intensity drizzle":
-    case "heavy intensity drizzle":
+    
+    case 300:
+    case 301:
+    case 302:
+    case 310:
+    case 311:
+    case 312:
+    case 313:
+    case 314:
+    case 321:
       return "Drizzle";
+    
     default:
       return "Unknown Weather";
   }
 };
 
-const getFarmingMessage = (weatherCondition, temperature) => {
-  if (weatherCondition.toLowerCase().includes("heavy rain") || weatherCondition.toLowerCase().includes("extreme rain")) {
+const getFarmingMessage = (weatherId, temperature) => {
+  if (weatherId === 503 || weatherId === 504) {
     return "Heavy rain expected. Avoid working in the coconut fields.";
-  } else if (weatherCondition.toLowerCase().includes("light rain")) {
+  } else if (weatherId === 500) {
     return "Light rain expected. Suitable for light work around coconut areas.";
-  } else if (weatherCondition.toLowerCase().includes("moderate rain")) {
+  } else if (weatherId === 502) {
     return "Moderate rain. Be cautious in the coconut fields, avoid heavy activity.";
-  } else if (weatherCondition.toLowerCase().includes("sun") && temperature > 30) {
+  } else if (weatherId === 800 && temperature > 30) {
     return "Hot day! Ensure coconut plants are well-watered.";
-  } else if (weatherCondition.toLowerCase().includes("cloud") || weatherCondition.toLowerCase().includes("fog")) {
-    return "Cloudy. Good conditions for general upkeep in the coconut farm.";
-  } else if (weatherCondition.toLowerCase().includes("thunderstorm")) {
+  } else if (weatherId === 804 || weatherId === 741) {
+    return "Cloudy or foggy. Good conditions for general upkeep in the coconut farm.";
+  } else if (weatherId === 200 || weatherId === 210) {
     return "Thunderstorms predicted. It's unsafe to work near coconut trees.";
-  } else if (weatherCondition.toLowerCase().includes("snow") || weatherCondition.toLowerCase().includes("sleet")) {
+  } else if (weatherId === 600 || weatherId === 602) {
     return "Snow or sleet predicted. Avoid outdoor activities.";
   } else {
     return "Weather looks stable for regular coconut farming activities.";
   }
 };
+
 
 const WeatherDisplay = ({ 
   location, 

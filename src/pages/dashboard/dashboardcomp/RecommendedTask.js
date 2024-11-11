@@ -3,8 +3,13 @@ import {
   Grid, 
   Typography, 
   Paper, 
-  CircularProgress,
-  Chip
+  CircularProgress, 
+  Chip, 
+  Dialog, 
+  DialogActions, 
+  DialogContent, 
+  DialogTitle, 
+  Button 
 } from '@mui/material';
 import { useRouter } from 'next/router';
 import { HistoryIcon } from 'lucide-react';
@@ -20,24 +25,40 @@ const RecommendedTask = ({
   const [recommendedTasks, setRecommendedTasks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUsingCached, setIsUsingCached] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null); // State to track the selected task for the modal
   const router = useRouter();
 
-  // Validate weather data structure
-  const validateWeatherData = (data) => {
+  // Validate and extract relevant weather data
+  const extractWeatherData = (data) => {
     if (!data) return null;
 
-    const requiredProps = ['main', 'wind', 'clouds', 'weather'];
-    if (!requiredProps.every(prop => data[prop])) {
-      console.error('Missing required weather properties');
-      return null;
+    if (data.weather) {
+      // currentWeatherData structure
+      return {
+        temp: data.main.temp,
+        humidity: data.main.humidity,
+        pressure: data.main.pressure,
+        windSpeed: data.wind.speed,
+        windGust: data.wind.gust,
+        clouds: data.clouds.all,
+        weatherId: data.weather[0]?.id,
+      };
+    } else if (data.temperature !== undefined) {
+      // weatherData structure (forecasted)
+      return {
+        location: data.location,
+        date: data.date,
+        time: data.time,
+        temp: data.temperature,
+        humidity: data.humidity,
+        pressure: data.pressure,
+        windSpeed: data.wind_speed,
+        windGust: data.wind_gust,
+        clouds: data.clouds,
+        weatherId: data.weather_id,
+      };
     }
-
-    if (!Array.isArray(data.weather) || data.weather.length === 0) {
-      console.error('Invalid weather array');
-      return null;
-    }
-
-    return data;
+    return null;
   };
 
   // Load cached recommendations
@@ -83,78 +104,74 @@ const RecommendedTask = ({
   }, []);
 
   // Evaluate tasks based on weather data
-// Fetch and evaluate tasks based on updated weather data
-useEffect(() => {
-  const evaluateTasks = () => {
-    const effectiveWeatherData = useCurrentWeather ? currentWeatherData : weatherData;
-    const validatedWeatherData = validateWeatherData(effectiveWeatherData);
+  useEffect(() => {
+    const evaluateTasks = () => {
+      const effectiveWeatherData = useCurrentWeather ? currentWeatherData : weatherData;
 
-    // Log the effective weather data being used for evaluation
-    console.log('Effective Weather Data:', validatedWeatherData);
-
-    if (!validatedWeatherData || !tasksData.length) {
-      const hasCachedData = loadCachedRecommendations();
-      if (!hasCachedData) {
-        setRecommendedTasks([]);
+      if (!effectiveWeatherData) {
+        return;
       }
-      return;
-    }
 
-    setIsUsingCached(false);
+      const weather = extractWeatherData(effectiveWeatherData);
 
-    try {
-      if (!useCurrentWeather && validatedWeatherData.dt_txt) {
-        const forecastHour = new Date(validatedWeatherData.dt_txt).getHours();
-        const targetHours = [3, 6, 9, 12, 15, 18];
-        if (!targetHours.includes(forecastHour)) {
+      if (!weather) {
+        return;
+      }
+
+      if (!tasksData.length) {
+        const hasCachedData = loadCachedRecommendations();
+        if (!hasCachedData) {
           setRecommendedTasks([]);
-          return;
         }
+        return;
       }
 
-      const { main, wind, clouds, weather } = validatedWeatherData;
-      const weatherConditionCode = weather[0]?.id; // Weather condition ID
+      setIsUsingCached(false);
 
-      const matchingTasks = tasksData.filter(task => {
-        try {
+      try {
+        const matchingTasks = tasksData.filter(task => {
           const weatherRestrictions = task.weatherRestrictions ? 
             JSON.parse(task.weatherRestrictions) : [];
 
-          return (
-            main.temp >= task.requiredTemperature_min &&
-            main.temp <= task.requiredTemperature_max &&
-            main.humidity >= task.idealHumidity_min &&
-            main.humidity <= task.idealHumidity_max &&
-            main.pressure >= task.requiredPressure_min &&
-            main.pressure <= task.requiredPressure_max &&
-            wind.speed <= task.requiredWindSpeed_max &&
-            (wind.gust || 0) <= task.requiredWindGust_max &&
-            clouds.all <= task.requiredCloudCover_max &&
+          const isMatching = (
+            weather.temp >= task.requiredTemperature_min &&
+            weather.temp <= task.requiredTemperature_max &&
+            weather.humidity >= task.idealHumidity_min &&
+            weather.humidity <= task.idealHumidity_max &&
+            weather.pressure >= task.requiredPressure_min &&
+            weather.pressure <= task.requiredPressure_max &&
+            weather.windSpeed <= task.requiredWindSpeed_max &&
+            (weather.windGust || 0) <= task.requiredWindGust_max &&
+            weather.clouds <= task.requiredCloudCover_max &&
             (weatherRestrictions.length === 0 ||
-              weatherRestrictions.includes(weatherConditionCode)) // Check for matching weather code
+              weatherRestrictions.includes(weather.weatherId))
           );
-        } catch (error) {
-          console.error(`Error evaluating task "${task.task}":`, error);
-          return false;
-        }
-      });
 
-      // Log matching tasks
-      console.log('Matching Tasks:', matchingTasks);
-      setRecommendedTasks(matchingTasks);
-      localStorage.setItem('recommendedTasks', JSON.stringify({
-        tasks: matchingTasks,
-        timestamp: new Date().toISOString()
-      }));
-    } catch (error) {
-      console.error('Error processing tasks:', error);
-      loadCachedRecommendations();
-    }
+          return isMatching;
+        });
+
+        setRecommendedTasks(matchingTasks);
+        localStorage.setItem('recommendedTasks', JSON.stringify({
+          tasks: matchingTasks,
+          timestamp: new Date().toISOString()
+        }));
+      } catch (error) {
+        loadCachedRecommendations();
+      }
+    };
+
+    evaluateTasks();
+  }, [weatherData, currentWeatherData, tasksData, useCurrentWeather]);
+
+  // Handle modal open
+  const handleTaskClick = (task) => {
+    setSelectedTask(task); // Set selected task for modal
   };
 
-  evaluateTasks();
-}, [weatherData, currentWeatherData, tasksData, useCurrentWeather]);
-
+  // Handle modal close
+  const handleCloseModal = () => {
+    setSelectedTask(null); // Reset selected task to close modal
+  };
 
   const handleSeeMore = () => {
     router.push({
@@ -199,7 +216,7 @@ useEffect(() => {
           See all
         </Typography>
       </Grid>
-        
+
       {isUsingCached && (
         <Chip
           icon={<HistoryIcon size={16} />}
@@ -212,16 +229,15 @@ useEffect(() => {
       {location && !isUsingCached && (
         <Typography variant="body2" sx={{ mb: 2 }}>
           {useCurrentWeather 
-            ? `Current recommendations for ${location}`
-            : `Recommendations for ${location} on ${selectedDate}`
-          }
+            ? `Current recommendations for ${location}` 
+            : `Recommendations for ${location} on ${selectedDate}`}
         </Typography>
       )}
 
       <Grid container>
         {recommendedTasks.length > 0 ? (
           recommendedTasks.slice(0, 3).map((task, index) => (
-            <Grid item xs={12} sm={6} md={4} key={index}>
+            <Grid item xs={12} sm={6} md={4} key={task.task_id}>
               <Paper 
                 elevation={0} 
                 sx={{ 
@@ -232,7 +248,9 @@ useEffect(() => {
                   justifyContent: 'center',
                   backgroundColor: colors[index % colors.length], 
                   marginBottom: '4px',
+                  cursor: 'pointer' // Make it clickable
                 }}
+                onClick={() => handleTaskClick(task)} // Open modal on click
               >
                 <Typography variant="body1">
                   {task.task}
@@ -248,6 +266,29 @@ useEffect(() => {
           </Grid>
         )}
       </Grid>
+
+      {/* Modal for task details */}
+      <Dialog open={!!selectedTask} onClose={handleCloseModal}>
+        <DialogTitle>Task Details</DialogTitle>
+        <DialogContent>
+          {selectedTask && (
+            <>
+              <Typography variant="h6">{selectedTask.task}</Typography>
+              <Typography variant="body2">Location: {location}</Typography>
+              <Typography variant="body2">Date: {selectedDate}</Typography>
+              <Typography variant="body2">Time: {/* Add time if available */}</Typography>
+              <Typography variant="body1" sx={{ mt: 2 }}>
+                {selectedTask.details} {/* Assuming task has a details field */}
+              </Typography>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseModal} color="primary">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Grid>
   );
 };
