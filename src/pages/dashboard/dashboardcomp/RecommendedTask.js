@@ -107,17 +107,21 @@ const RecommendedTask = ({
   useEffect(() => {
     const evaluateTasks = () => {
       const effectiveWeatherData = useCurrentWeather ? currentWeatherData : weatherData;
-
+  
       if (!effectiveWeatherData) {
+        console.log('No weather data available');
         return;
       }
-
+  
       const weather = extractWeatherData(effectiveWeatherData);
-
+  
       if (!weather) {
+        console.log('Invalid weather data');
         return;
       }
-
+  
+      console.log('Using the following weather data for task evaluation:', weather);
+  
       if (!tasksData.length) {
         const hasCachedData = loadCachedRecommendations();
         if (!hasCachedData) {
@@ -125,14 +129,14 @@ const RecommendedTask = ({
         }
         return;
       }
-
+  
       setIsUsingCached(false);
-
+  
       try {
         const matchingTasks = tasksData.filter(task => {
           const weatherRestrictions = task.weatherRestrictions ? 
             JSON.parse(task.weatherRestrictions) : [];
-
+  
           const isMatching = (
             weather.temp >= task.requiredTemperature_min &&
             weather.temp <= task.requiredTemperature_max &&
@@ -146,10 +150,10 @@ const RecommendedTask = ({
             (weatherRestrictions.length === 0 ||
               weatherRestrictions.includes(weather.weatherId))
           );
-
+  
           return isMatching;
         });
-
+  
         setRecommendedTasks(matchingTasks);
         localStorage.setItem('recommendedTasks', JSON.stringify({
           tasks: matchingTasks,
@@ -159,9 +163,10 @@ const RecommendedTask = ({
         loadCachedRecommendations();
       }
     };
-
+  
     evaluateTasks();
   }, [weatherData, currentWeatherData, tasksData, useCurrentWeather]);
+  
 
   // Handle modal open
   const handleTaskClick = (task) => {

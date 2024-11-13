@@ -8,37 +8,44 @@ import { Preferences } from '@capacitor/preferences';
 
 
 const WelcomeFeatures = () => {
-  const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
 
+  const router = useRouter();
+
   useEffect(() => {
-    const checkUserStatus = async () => {
-      // Try to retrieve the userId from Preferences
-      const { value: userId } = await Preferences.get({ key: 'userId' });
-
-      if (userId) {
-        // If userId exists, redirect to the dashboard
-        router.push('/dashboard');
-      } else {
-        // If userId does not exist, generate and save a new one
-        const newUserId = getOrCreateUUID();
-        await Preferences.set({
-          key: 'userId',
-          value: newUserId,
-        });
-      }
-    };
-
-    checkUserStatus();
-  }, [router]);
-
+    setIsClient(true); // Set isClient to true once the component mounts
+  }, []);
+  
   const handleGetStartedClick = () => {
     setIsExiting(true);
     setTimeout(() => {
       router.push('/dashboard');
     }, 250);
   };
+
+  // useEffect(() => {
+  //   const checkUserStatus = async () => {
+  //     // Try to retrieve the userId from Preferences
+  //     const { value: userId } = await Preferences.get({ key: 'userId' });
+
+  //     if (userId) {
+  //       // If userId exists, redirect to the dashboard
+  //       router.push('/dashboard');
+  //     } else {
+  //       // If userId does not exist, generate and save a new one
+  //       const newUserId = getOrCreateUUID();
+  //       await Preferences.set({
+  //         key: 'userId',
+  //         value: newUserId,
+  //       });
+  //     }
+  //   };
+
+  //   checkUserStatus();
+  // }, [router]);
+
+  
 
   const features = [
     {

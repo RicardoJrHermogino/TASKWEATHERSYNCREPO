@@ -6,43 +6,44 @@ import { useRouter } from 'next/router';
 import getOrCreateUUID from '../../utils/uuid';
 import { Preferences } from '@capacitor/preferences';
 
-
 const WelcomeGreetings = () => {
   const [isClient, setIsClient] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
 
   const router = useRouter();
 
-    useEffect(() => {
-      const checkUserStatus = async () => {
-        // Try to retrieve the userId from Preferences
-        const { value: userId } = await Preferences.get({ key: 'userId' });
+  useEffect(() => {
+    setIsClient(true); // Set isClient to true once the component mounts
+  }, []);
+
+  const handleGetStartedClick = () => {
+    setIsExiting(true);
+    setTimeout(() => {
+      router.push('/welcome/finalwelcome');
+    }, 250);
+  };
+
+      // useEffect(() => {
+    //   const checkUserStatus = async () => {
+    //     // Try to retrieve the userId from Preferences
+    //     const { value: userId } = await Preferences.get({ key: 'userId' });
   
-        if (userId) {
-          // If userId exists, redirect to the dashboard
-          router.push('/dashboard');
-        } else {
-          // If userId does not exist, generate and save a new one
-          const newUserId = getOrCreateUUID();
-          await Preferences.set({
-            key: 'userId',
-            value: newUserId,
-          });
-        }
-      };
+    //     if (userId) {
+    //       // If userId exists, redirect to the dashboard
+    //       router.push('/dashboard');
+    //     } else {
+    //       // If userId does not exist, generate and save a new one
+    //       const newUserId = getOrCreateUUID();
+    //       await Preferences.set({
+    //         key: 'userId',
+    //         value: newUserId,
+    //       });
+    //     }
+    //   };
   
-      checkUserStatus();
-    }, [router]);
+    //   checkUserStatus();
+    // }, [router]);
 
-
-    const handleGetStartedClick = () => {
-      setIsExiting(true);
-      setTimeout(() => {
-        router.push('/welcome/finalwelcome');
-      }, 250);
-    };
-
-    
   return (
     <>
       <CssBaseline />
@@ -105,9 +106,9 @@ const WelcomeGreetings = () => {
                     sx={{
                       position: 'relative',
                       width: {
-                        xs: 280,  // Starting size for mobile
-                        sm: 340,  // Medium size for tablets
-                        md: 400   // Larger size for desktop
+                        xs: 280,
+                        sm: 340,
+                        md: 400
                       },
                       height: {
                         xs: 280,
@@ -119,7 +120,6 @@ const WelcomeGreetings = () => {
                       alignItems: 'center',
                     }}
                   >
-                    {/* Gradient shadow background */}
                     <Box
                       sx={{
                         position: 'absolute',
@@ -134,8 +134,8 @@ const WelcomeGreetings = () => {
                     <Image 
                       src="/image/coconutgraphic.svg" 
                       alt="sample" 
-                      width={400}    // Increased base width
-                      height={400}   // Increased base height
+                      width={400}
+                      height={400}
                       style={{
                         objectFit: 'contain',
                         width: '100%',

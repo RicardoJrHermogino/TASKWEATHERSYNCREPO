@@ -30,7 +30,7 @@ export const PollingProvider = ({ children }) => {
     fetchWeatherData();
 
     // Set up polling every 30 minutes (30 * 60 * 1000 ms = 1800000 ms)
-    const intervalId = setInterval(fetchWeatherData, 1800000); // 30 minutes
+    const intervalId = setInterval(fetchWeatherData, 300000); // 5 minutes
 
     // Clean up interval on unmount
     return () => clearInterval(intervalId);

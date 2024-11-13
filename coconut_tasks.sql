@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 12, 2024 at 01:43 PM
+-- Generation Time: Nov 13, 2024 at 05:18 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -48,20 +48,20 @@ CREATE TABLE `coconut_tasks` (
 --
 
 INSERT INTO `coconut_tasks` (`id`, `task`, `weatherRestrictions`, `details`, `requiredTemperature_min`, `requiredTemperature_max`, `idealHumidity_min`, `idealHumidity_max`, `requiredWindSpeed_max`, `requiredWindGust_max`, `requiredCloudCover_max`, `requiredPressure_min`, `requiredPressure_max`) VALUES
-(1, 'Harvesting coconuts', '[{\"main\": \"Clear\", \"description\": \"Clear sky\"}, {\"main\": \"Clouds\", \"description\": \"Few clouds\"}, {\"main\": \"Clouds\", \"description\": \"overcast clouds\"}, {\"main\": \"Rain\", \"description\": \"light rain\"}]', 'Harvest during the dry season when fruits are ripe. Avoid harvesting during heavy rain.', 25, 32, 60, 90, 15, 20, 100, 1010, 1025),
-(2, 'Cleaning coconut trees', '[{\"main\": \"Clear\", \"description\": \"Clear sky\"}, {\"main\": \"Clouds\", \"description\": \"Few clouds\"}]', 'Clean around trees by removing fallen leaves and debris to prevent pest infestation.', 25, 30, 50, 75, 10, 15, 100, 1010, 1020),
-(3, 'Applying fertilizer', '[{\"main\": \"Clear\", \"description\": \"Clear sky\"}, {\"main\": \"Clouds\", \"description\": \"Few clouds\"}]', 'Apply organic or chemical fertilizer around the base of the tree during dry weather.', 26, 30, 60, 80, 10, 15, 80, 1010, 1020),
-(4, 'Watering coconut plants', '[{\"main\": \"Clear\", \"description\": \"Clear sky\"}, {\"main\": \"Clouds\", \"description\": \"Few clouds\"}]', 'Water trees during dry spells to maintain soil moisture and prevent stress.', 25, 30, 50, 75, 10, 15, 100, 1010, 1020),
-(5, 'Inspecting for pests', '[{\"main\": \"Clear\", \"description\": \"Clear sky\"}, {\"main\": \"Clouds\", \"description\": \"Few clouds\"}]', 'Regular inspection of trees for pests such as beetles and mites is essential.', 24, 30, 50, 70, 10, 15, 100, 1010, 1025),
-(6, 'Transplanting coconut seedlings', '[{\"main\": \"Clear\", \"description\": \"Clear sky\"}, {\"main\": \"Clouds\", \"description\": \"Few clouds\"}, {\"main\": \"Clouds\", \"description\": \"scattered clouds\"}]', 'Best to transplant during early morning or late afternoon with moderate weather.', 25, 32, 60, 80, 10, 15, 100, 1010, 1025),
-(7, 'Pruning coconut palms', '[{\"main\": \"Clear\", \"description\": \"Clear sky\"}, {\"main\": \"Clouds\", \"description\": \"Few clouds\"}]', 'Remove dead or diseased leaves to encourage growth and prevent pest buildup.', 24, 30, 50, 70, 10, 15, 80, 1010, 1020),
-(8, 'Mulching around coconut trees', '[{\"main\": \"Clear\", \"description\": \"Clear sky\"}, {\"main\": \"Clouds\", \"description\": \"Few clouds\"}]', 'Spread organic mulch around the base of the tree to conserve moisture.', 25, 30, 60, 85, 10, 15, 100, 1010, 1020),
-(9, 'Monitoring soil health', '[{\"main\": \"Clear\", \"description\": \"Clear sky\"}, {\"main\": \"Clouds\", \"description\": \"Few clouds\"}]', 'Check soil pH and moisture content regularly for optimal tree health.', 24, 30, 50, 70, 10, 15, 100, 1010, 1020),
-(10, 'Controlling weeds', '[{\"main\": \"Clear\", \"description\": \"Clear sky\"}, {\"main\": \"Clouds\", \"description\": \"Few clouds\"}]', 'Remove weeds manually or use herbicides to prevent competition for nutrients.', 25, 30, 50, 75, 10, 15, 100, 1010, 1020),
-(11, 'Harvesting coconut sap (tuba)', '[{\"main\": \"Clear\", \"description\": \"Clear sky\"}, {\"main\": \"Clouds\", \"description\": \"Few clouds\"}, {\"main\": \"Clouds\", \"description\": \"scattered clouds\"}, {\"main\": \"Rain\", \"description\": \"light rain\"}]', 'Best done early in the morning or evening to ensure fresh sap collection.', 22, 30, 60, 90, 10, 15, 100, 1010, 1020),
-(12, 'Managing irrigation', '[{\"main\": \"Clear\", \"description\": \"Clear sky\"}, {\"main\": \"Clouds\", \"description\": \"Few clouds\"}]', 'Ensure trees receive adequate water supply during dry spells through irrigation.', 24, 32, 60, 80, 10, 15, 100, 1010, 1020),
-(13, 'Monitoring for diseases', '[{\"main\": \"Clear\", \"description\": \"Clear sky\"}, {\"main\": \"Clouds\", \"description\": \"Few clouds\"}]', 'Regular monitoring of trees for diseases such as bud rot or leaf blight is crucial.', 24, 30, 50, 70, 10, 15, 100, 1010, 1025),
-(14, 'Preparing for typhoons', '[{\"main\": \"Clouds\", \"description\": \"overcast clouds\"}, {\"main\": \"Rain\", \"description\": \"moderate rain\"}, {\"main\": \"Rain\", \"description\": \"heavy rain\"}]', 'Secure trees, harvest any mature coconuts, and reinforce tree structures before storms.', 22, 30, 70, 90, 20, 25, 100, 1005, 1020);
+(1, 'Harvesting coconuts', '[800, 801, 804, 500]', 'Harvest during the dry season when fruits are ripe. Avoid harvesting during heavy rain.', 25, 32, 60, 90, 15, 20, 100, 1000, 1030),
+(2, 'Cleaning coconut trees', '[800, 801, 804, 500]', 'Clean around trees by removing fallen leaves and debris to prevent pest infestation.', 25, 30, 50, 85, 12, 15, 100, 1000, 1030),
+(3, 'Applying fertilizer', '[800, 801]', 'Apply organic or chemical fertilizer around the base of the tree during dry weather.', 26, 30, 60, 80, 10, 15, 80, 1000, 1030),
+(4, 'Watering coconut plants', '[800, 801, 804]', 'Water trees during dry spells to maintain soil moisture and prevent stress.', 25, 30, 50, 85, 12, 15, 100, 1000, 1030),
+(5, 'Inspecting for pests', '[800, 801, 804]', 'Regular inspection of trees for pests such as beetles and mites is essential.', 24, 30, 50, 85, 15, 20, 100, 1000, 1030),
+(6, 'Transplanting coconut seedlings', '[800, 801, 802, 804]', 'Best to transplant during early morning or late afternoon with moderate weather.', 25, 32, 60, 85, 15, 20, 100, 1000, 1030),
+(7, 'Pruning coconut palms', '[800, 801, 804]', 'Remove dead or diseased leaves to encourage growth and prevent pest buildup.', 24, 30, 50, 85, 12, 15, 100, 1000, 1030),
+(8, 'Mulching around coconut trees', '[800, 801, 804]', 'Spread organic mulch around the base of the tree to conserve moisture.', 25, 30, 60, 90, 10, 15, 100, 1000, 1030),
+(9, 'Monitoring soil health', '[800, 801, 804]', 'Check soil pH and moisture content regularly for optimal tree health.', 24, 30, 50, 85, 12, 15, 100, 1000, 1030),
+(10, 'Controlling weeds', '[800, 801, 804]', 'Remove weeds manually or use herbicides to prevent competition for nutrients.', 25, 30, 50, 85, 12, 15, 100, 1000, 1030),
+(11, 'Harvesting coconut sap (tuba)', '[800, 801, 802, 500]', 'Best done early in the morning or evening to ensure fresh sap collection.', 22, 30, 60, 90, 15, 20, 100, 980, 1010),
+(12, 'Managing irrigation', '[800, 801, 804]', 'Ensure trees receive adequate water supply during dry spells through irrigation.', 24, 32, 60, 90, 10, 15, 100, 1000, 1030),
+(13, 'Monitoring growth', '[800, 801, 804]', 'Regularly check tree growth and health indicators to ensure optimal development.', 24, 30, 50, 85, 12, 15, 100, 1000, 1030),
+(14, 'Preparing for typhoon', '[800, 502, 900]', 'Secure trees and surrounding areas to minimize damage during typhoons.', 22, 30, 60, 90, 50, 60, 100, 980, 1010);
 
 --
 -- Indexes for dumped tables

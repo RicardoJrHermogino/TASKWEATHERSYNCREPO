@@ -31,10 +31,10 @@ const FloatingButton = styled(Button)`
   top: -15px;
   left: 50%;
   transform: translateX(-50%);
-  background-color: #181c44;
+  background-color: #48ccb4;
   border-radius: 50%;
   width: 56px;
-  height: 58px;
+  height: 63px;
   z-index: 1001;
 
   &:hover {

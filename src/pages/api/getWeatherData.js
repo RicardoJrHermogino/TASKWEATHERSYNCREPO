@@ -28,8 +28,9 @@ export default async function handler(req, res) {
 
       const formattedData = rows.map(row => ({
         ...row,
-        date: new Date(row.date).toISOString().split('T')[0],
+        date: new Date(row.date).toLocaleDateString('en-CA'), // 'en-CA' format for YYYY-MM-DD
       }));
+      
 
       res.status(200).json(id ? formattedData[0] : formattedData); // If id is provided, return only one item
     } else {
