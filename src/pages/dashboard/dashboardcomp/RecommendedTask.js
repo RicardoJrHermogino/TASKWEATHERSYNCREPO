@@ -1,84 +1,230 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Grid, 
-  Typography, 
-  Paper, 
-  CircularProgress, 
-  Chip, 
-  Dialog, 
-  DialogActions, 
-  DialogContent, 
-  DialogTitle, 
-  Button 
-} from '@mui/material';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Grid, Typography, Paper, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Button } from '@mui/material';
 import { useRouter } from 'next/router';
-import { HistoryIcon } from 'lucide-react';
+import { Preferences } from '@capacitor/preferences';
+import dayjs from 'dayjs';
 
-const RecommendedTask = ({ 
-  weatherData, 
-  currentWeatherData, 
-  useCurrentWeather, 
-  location, 
-  selectedDate 
-}) => {
+// Helper function to extract weather data from different formats
+const extractWeatherData = (data) => {
+  if (!data) return null;
+
+  if (data.weather) {
+    // currentWeatherData structure
+    return {
+      temp: data.main.temp,
+      humidity: data.main.humidity,
+      pressure: data.main.pressure,
+      windSpeed: data.wind.speed,
+      windGust: data.wind.gust,
+      clouds: data.clouds.all,
+      weatherId: data.weather[0]?.id,
+    };
+  } else if (data.temperature !== undefined) {
+    // weatherData structure (forecasted)
+    return {
+      location: data.location,
+      date: data.date,
+      time: data.time,
+      temp: data.temperature,
+      humidity: data.humidity,
+      pressure: data.pressure,
+      windSpeed: data.wind_speed,
+      windGust: data.wind_gust,
+      clouds: data.clouds,
+      weatherId: data.weather_id,
+    };
+  }
+  return null;
+};
+
+// Helper function to evaluate if the task matches the weather conditions
+const evaluateTask = (task, weather) => {
+  console.log('Using weather data:', weather);
+
+  console.log(`Required data for task "${task.task}":`, {
+    requiredTemperature_min: task.requiredTemperature_min,
+    requiredTemperature_max: task.requiredTemperature_max,
+    idealHumidity_min: task.idealHumidity_min,
+    idealHumidity_max: task.idealHumidity_max,
+    requiredPressure_min: task.requiredPressure_min,
+    requiredPressure_max: task.requiredPressure_max,
+    requiredWindSpeed_max: task.requiredWindSpeed_max,
+    requiredWindGust_max: task.requiredWindGust_max,
+    requiredCloudCover_max: task.requiredCloudCover_max,
+    weatherRestrictions: task.weatherRestrictions ? JSON.parse(task.weatherRestrictions) : []
+  });
+
+  const weatherRestrictions = task.weatherRestrictions ? JSON.parse(task.weatherRestrictions) : [];
+  let isRecommended = true;
+
+  // Check temperature
+  const tempCheck = weather.temp >= task.requiredTemperature_min && weather.temp <= task.requiredTemperature_max;
+  console.log(`Temperature check: ${tempCheck}`);
+  if (!tempCheck) isRecommended = false;
+
+  // Check humidity
+  const humidityCheck = weather.humidity >= task.idealHumidity_min && weather.humidity <= task.idealHumidity_max;
+  console.log(`Humidity check: ${humidityCheck}`);
+  if (!humidityCheck) isRecommended = false;
+
+  // Check pressure
+  const pressureCheck = weather.pressure >= task.requiredPressure_min && weather.pressure <= task.requiredPressure_max;
+  console.log(`Pressure check: ${pressureCheck}`);
+  if (!pressureCheck) isRecommended = false;
+
+  // Check wind speed
+  const windSpeedCheck = weather.windSpeed <= task.requiredWindSpeed_max;
+  console.log(`Wind Speed check: ${windSpeedCheck}`);
+  if (!windSpeedCheck) isRecommended = false;
+
+  // Check wind gust
+  const windGustCheck = (weather.windGust || 0) <= task.requiredWindGust_max;
+  console.log(`Wind Gust check: ${windGustCheck}`);
+  if (!windGustCheck) isRecommended = false;
+
+  // Check cloud cover
+  const cloudCoverCheck = weather.clouds <= task.requiredCloudCover_max;
+  console.log(`Cloud Cover check: ${cloudCoverCheck}`);
+  if (!cloudCoverCheck) isRecommended = false;
+
+  // Check weather restrictions
+  const weatherRestrictionCheck = weatherRestrictions.length === 0 || weatherRestrictions.includes(weather.weatherId);
+  console.log(`Weather Restriction check: ${weatherRestrictionCheck}`);
+  if (!weatherRestrictionCheck) isRecommended = false;
+
+  // Log the overall recommendation
+  console.log(`Task "${task.task}" is ${isRecommended ? 'Recommended' : 'Not Recommended'}`);
+
+  return isRecommended;
+};
+
+const RecommendedTask = ({ weatherData, currentWeatherData, useCurrentWeather, location, selectedDate, selectedTime }) => {
   const [tasksData, setTasksData] = useState([]);
   const [recommendedTasks, setRecommendedTasks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isUsingCached, setIsUsingCached] = useState(false);
-  const [selectedTask, setSelectedTask] = useState(null); // State to track the selected task for the modal
+  const [selectedTask, setSelectedTask] = useState(null);
   const router = useRouter();
 
-  // Validate and extract relevant weather data
-  const extractWeatherData = (data) => {
-    if (!data) return null;
+  // Enhanced storage mechanism to save context
+  const saveRecommendationContext = async (context) => {
+    try {
+      if (typeof window !== "undefined") {
+        // Save to localStorage for web
+        localStorage.setItem('recommendationContext', JSON.stringify(context));
+      } else {
+        // Save to Capacitor Preferences for mobile
+        await Preferences.set({
+          key: 'recommendationContext',
+          value: JSON.stringify(context)
+        });
+      }
+    } catch (error) {
+      console.error('Error saving recommendation context:', error);
+    }
+  };
 
-    if (data.weather) {
-      // currentWeatherData structure
-      return {
-        temp: data.main.temp,
-        humidity: data.main.humidity,
-        pressure: data.main.pressure,
-        windSpeed: data.wind.speed,
-        windGust: data.wind.gust,
-        clouds: data.clouds.all,
-        weatherId: data.weather[0]?.id,
-      };
-    } else if (data.temperature !== undefined) {
-      // weatherData structure (forecasted)
-      return {
-        location: data.location,
-        date: data.date,
-        time: data.time,
-        temp: data.temperature,
-        humidity: data.humidity,
-        pressure: data.pressure,
-        windSpeed: data.wind_speed,
-        windGust: data.wind_gust,
-        clouds: data.clouds,
-        weatherId: data.weather_id,
-      };
+  // Load recommendation context
+  const loadRecommendationContext = async () => {
+    try {
+      let storedContext;
+      if (typeof window !== "undefined") {
+        // Load from localStorage for web
+        storedContext = localStorage.getItem('recommendationContext');
+      } else {
+        // Load from Capacitor Preferences for mobile
+        const { value } = await Preferences.get({ key: 'recommendationContext' });
+        storedContext = value;
+      }
+
+      return storedContext ? JSON.parse(storedContext) : null;
+    } catch (error) {
+      console.error('Error loading recommendation context:', error);
+      return null;
+    }
+  };
+
+  // Updated helper function to save recommended tasks to storage with full details
+  const saveRecommendedTasks = async (tasks) => {
+    const tasksToStore = tasks.map(task => ({
+      ...task,
+      // Store additional context to recreate the full context
+      storedLocation: location,
+      storedDate: selectedDate,
+      storedTime: selectedTime,
+      storedUseCurrentWeather: useCurrentWeather
+    }));
+
+    try {
+      if (typeof window !== "undefined") {
+        // Save to localStorage for web
+        localStorage.setItem('recommendedTasks', JSON.stringify(tasksToStore));
+      } else {
+        // Save to Capacitor Preferences for mobile
+        await Preferences.set({
+          key: 'recommendedTasks',
+          value: JSON.stringify(tasksToStore)
+        });
+      }
+    } catch (error) {
+      console.error('Error saving recommended tasks:', error);
+    }
+  };
+
+  // Updated helper function to load recommended tasks from storage
+  const loadRecommendedTasks = async () => {
+    try {
+      let storedTasks;
+      if (typeof window !== "undefined") {
+        // Load from localStorage for web
+        storedTasks = localStorage.getItem('recommendedTasks');
+      } else {
+        // Load from Capacitor Preferences for mobile
+        const { value } = await Preferences.get({ key: 'recommendedTasks' });
+        storedTasks = value;
+      }
+
+      if (storedTasks) {
+        return JSON.parse(storedTasks);
+      }
+    } catch (error) {
+      console.error('Error loading recommended tasks:', error);
     }
     return null;
   };
 
-  // Load cached recommendations
-  const loadCachedRecommendations = () => {
-    try {
-      const storedRecommendedTasks = localStorage.getItem('recommendedTasks');
-      if (storedRecommendedTasks) {
-        const parsedTasks = JSON.parse(storedRecommendedTasks);
-        setRecommendedTasks(parsedTasks.tasks || parsedTasks);
-        setIsUsingCached(true);
-        return true;
+  // Update handleSeeMore to use stored context if current data is incomplete
+  const handleSeeMore = async () => {
+    let queryParams = {
+      location: JSON.stringify(location),
+      selectedDate,
+      selectedTime,
+      useCurrentWeather: JSON.stringify(useCurrentWeather),
+    };
+
+    // If current weather data is available, use it
+    if (useCurrentWeather && currentWeatherData) {
+      queryParams.weatherData = JSON.stringify(currentWeatherData);
+    } 
+    // Otherwise, try to load stored context
+    else {
+      const storedContext = await loadRecommendationContext();
+      if (storedContext) {
+        queryParams = {
+          location: JSON.stringify(storedContext.location),
+          selectedDate: storedContext.selectedDate,
+          selectedTime: storedContext.selectedTime,
+          useCurrentWeather: JSON.stringify(storedContext.useCurrentWeather),
+          weatherData: storedContext.weatherData ? JSON.stringify(storedContext.weatherData) : undefined
+        };
       }
-      return false;
-    } catch (error) {
-      console.error('Error loading cached recommendations:', error);
-      return false;
     }
+
+    router.push({
+      pathname: '/dashboard/dashboardcomp/AllRecommendedTasksPage',
+      query: queryParams,
+    });
   };
 
-  // Fetch tasks from the API
   useEffect(() => {
     const fetchTasks = async () => {
       setIsLoading(true);
@@ -94,7 +240,6 @@ const RecommendedTask = ({
         setTasksData(data.coconut_tasks);
       } catch (error) {
         console.error('Error fetching tasks:', error);
-        loadCachedRecommendations();
       } finally {
         setIsLoading(false);
       }
@@ -103,91 +248,47 @@ const RecommendedTask = ({
     fetchTasks();
   }, []);
 
-  // Evaluate tasks based on weather data
+  // Load recommended tasks from storage if available
   useEffect(() => {
-    const evaluateTasks = () => {
-      const effectiveWeatherData = useCurrentWeather ? currentWeatherData : weatherData;
-  
-      if (!effectiveWeatherData) {
-        console.log('No weather data available');
-        return;
-      }
-  
-      const weather = extractWeatherData(effectiveWeatherData);
-  
-      if (!weather) {
-        console.log('Invalid weather data');
-        return;
-      }
-  
-      console.log('Using the following weather data for task evaluation:', weather);
-  
-      if (!tasksData.length) {
-        const hasCachedData = loadCachedRecommendations();
-        if (!hasCachedData) {
-          setRecommendedTasks([]);
-        }
-        return;
-      }
-  
-      setIsUsingCached(false);
-  
-      try {
-        const matchingTasks = tasksData.filter(task => {
-          const weatherRestrictions = task.weatherRestrictions ? 
-            JSON.parse(task.weatherRestrictions) : [];
-  
-          const isMatching = (
-            weather.temp >= task.requiredTemperature_min &&
-            weather.temp <= task.requiredTemperature_max &&
-            weather.humidity >= task.idealHumidity_min &&
-            weather.humidity <= task.idealHumidity_max &&
-            weather.pressure >= task.requiredPressure_min &&
-            weather.pressure <= task.requiredPressure_max &&
-            weather.windSpeed <= task.requiredWindSpeed_max &&
-            (weather.windGust || 0) <= task.requiredWindGust_max &&
-            weather.clouds <= task.requiredCloudCover_max &&
-            (weatherRestrictions.length === 0 ||
-              weatherRestrictions.includes(weather.weatherId))
-          );
-  
-          return isMatching;
-        });
-  
-        setRecommendedTasks(matchingTasks);
-        localStorage.setItem('recommendedTasks', JSON.stringify({
-          tasks: matchingTasks,
-          timestamp: new Date().toISOString()
-        }));
-      } catch (error) {
-        loadCachedRecommendations();
+    const loadTasks = async () => {
+      const storedTasks = await loadRecommendedTasks();
+      if (storedTasks) {
+        setRecommendedTasks(storedTasks);
       }
     };
-  
-    evaluateTasks();
-  }, [weatherData, currentWeatherData, tasksData, useCurrentWeather]);
-  
+    loadTasks();
+  }, []);
 
-  // Handle modal open
-  const handleTaskClick = (task) => {
-    setSelectedTask(task); // Set selected task for modal
-  };
+  const effectiveWeatherData = useCurrentWeather ? currentWeatherData : weatherData;
+  const weather = useMemo(() => extractWeatherData(effectiveWeatherData), [effectiveWeatherData]);
 
-  // Handle modal close
-  const handleCloseModal = () => {
-    setSelectedTask(null); // Reset selected task to close modal
-  };
+  useEffect(() => {
+    if (!weather || !tasksData.length) return;
 
-  const handleSeeMore = () => {
-    router.push({
-      pathname: '/dashboard/dashboardcomp/AllRecommendedTasksPage',
-      query: {
-        location: JSON.stringify(location),
-        selectedDate,
-        useCurrentWeather: JSON.stringify(useCurrentWeather),
-        ...(useCurrentWeather && { weatherData: JSON.stringify(currentWeatherData) }),
-      },
+    const matchingTasks = tasksData.filter((task) => evaluateTask(task, weather));
+
+    // Log the matching tasks to the console
+    console.log('Matching Tasks:', matchingTasks);
+
+    // Save tasks and context
+    setRecommendedTasks(matchingTasks);
+    saveRecommendedTasks(matchingTasks);
+    saveRecommendationContext({
+      location,
+      selectedDate,
+      selectedTime,
+      useCurrentWeather,
+      weatherData: useCurrentWeather ? currentWeatherData : weatherData,
+      tasks: matchingTasks
     });
+  }, [weather, tasksData]);
+
+  const handleTaskClick = (task) => {
+    setSelectedTask(task);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedTask(null);
   };
 
   const colors = ['#f5f5f5', '#e0f7fa', '#fff9c4', '#ffe0b2', '#f1f8e9'];
@@ -215,26 +316,17 @@ const RecommendedTask = ({
           sx={{
             fontWeight: 'bold',
             cursor: 'pointer',
-            textDecoration: 'underline'
+            textDecoration: 'underline',
           }}
         >
           See all
         </Typography>
       </Grid>
 
-      {isUsingCached && (
-        <Chip
-          icon={<HistoryIcon size={16} />}
-          label="Showing previous recommendations"
-          variant="outlined"
-          sx={{ mb: 2 }}
-        />
-      )}
-
-      {location && !isUsingCached && (
+      {location && (
         <Typography variant="body2" sx={{ mb: 2 }}>
-          {useCurrentWeather 
-            ? `Current recommendations for ${location}` 
+          {useCurrentWeather
+            ? `Current recommendations for ${location}`
             : `Recommendations for ${location} on ${selectedDate}`}
         </Typography>
       )}
@@ -243,23 +335,21 @@ const RecommendedTask = ({
         {recommendedTasks.length > 0 ? (
           recommendedTasks.slice(0, 3).map((task, index) => (
             <Grid item xs={12} sm={6} md={4} key={task.task_id}>
-              <Paper 
-                elevation={0} 
-                sx={{ 
+              <Paper
+                elevation={0}
+                sx={{
                   borderRadius: 7,
                   height: '100px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: colors[index % colors.length], 
+                  backgroundColor: colors[index % colors.length],
                   marginBottom: '4px',
-                  cursor: 'pointer' // Make it clickable
+                  cursor: 'pointer',
                 }}
-                onClick={() => handleTaskClick(task)} // Open modal on click
+                onClick={() => handleTaskClick(task)}
               >
-                <Typography variant="body1">
-                  {task.task}
-                </Typography>
+                <Typography variant="body1">{task.task}</Typography>
               </Paper>
             </Grid>
           ))
@@ -279,11 +369,17 @@ const RecommendedTask = ({
           {selectedTask && (
             <>
               <Typography variant="h6">{selectedTask.task}</Typography>
-              <Typography variant="body2">Location: {location}</Typography>
-              <Typography variant="body2">Date: {selectedDate}</Typography>
-              <Typography variant="body2">Time: {/* Add time if available */}</Typography>
+              <Typography variant="body2">
+                Location: {selectedTask.storedLocation || location}
+              </Typography>
+              <Typography variant="body2">
+                Date: {selectedTask.storedDate || selectedDate}
+              </Typography>
+              <Typography variant="body2">
+                Time: {dayjs(selectedTask.storedTime || selectedTime, 'HH:mm').format('h:mm A')}
+              </Typography>
               <Typography variant="body1" sx={{ mt: 2 }}>
-                {selectedTask.details} {/* Assuming task has a details field */}
+                {selectedTask.details}
               </Typography>
             </>
           )}

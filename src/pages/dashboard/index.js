@@ -16,17 +16,24 @@ import toast, { Toaster } from 'react-hot-toast';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import CloseIcon from '@mui/icons-material/Close'; 
 import NotificationDrawer from './dashboardcomp/NotificationDrawer';
+import { useLocation } from '@/utils/LocationContext'; // Import the custom hook
+
 
 const Dashboard = () => {
   const [greetingMessage, setGreetingMessage] = useState("");
   const [temperature, setTemperature] = useState(null);
   const [location, setLocation] = useState(""); 
+  const { setLocation: setGlobalLocation } = useLocation(); // Access the global setLocation function
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
   const [loading, setLoading] = useState(false);
   const [weatherData, setWeatherData] = useState(null);
+
   const [submittedLocation, setSubmittedLocation] = useState("");
   const [submittedDate, setSubmittedDate] = useState("");
+  const [submittedTime, setSubmittedTime] = useState("");
+
+
   const [currentWeatherData, setCurrentWeatherData] = useState(null);
   const [isCurrentWeather, setIsCurrentWeather] = useState(true); 
   const [drawerOpen, setDrawerOpen] = useState(false); 
@@ -89,8 +96,6 @@ const Dashboard = () => {
       const response = await axios.get('/api/getWeatherData');
       const forecastData = response.data;
 
-      // Log the forecast data to check the fetched data
-      console.log('Fetched Forecast Data:', forecastData);
 
       // Ensure the date, time, and location are correctly passed and filtered
       const selectedDateTime = dayjs(`${selectedDate} ${selectedTime}`);
@@ -143,9 +148,10 @@ const Dashboard = () => {
       showErrorToast("Please complete all inputs");
       return;
     }
-
+    setGlobalLocation(location);
     setSubmittedLocation(location);
     setSubmittedDate(selectedDate);
+    setSubmittedTime(selectedTime);
 
     // Get coordinates for the selected location
     const { lat, lon } = locationCoordinates[location];
@@ -161,7 +167,10 @@ const Dashboard = () => {
       showErrorToast("Please select a location.");
       return;
     }
+    setGlobalLocation(location);
     setSubmittedLocation(location);
+    setSubmittedDate(dayjs().format('YYYY-MM-DD'));
+    setSubmittedTime(dayjs().format('HH:mm'));
     const { lat, lon } = locationCoordinates[location];
     fetchCurrentWeatherData(lat, lon);
     setDrawerOpen(false); 
@@ -247,7 +256,7 @@ const Dashboard = () => {
           location={submittedLocation}
           selectedLocation={submittedLocation}
           selectedDate={submittedDate}
-          selectedTime={selectedTime}
+          selectedTime={submittedTime}
         />
 
         {/* Recommended Task Component */}
@@ -257,6 +266,7 @@ const Dashboard = () => {
           useCurrentWeather={isCurrentWeather}
           location={submittedLocation}
           selectedDate={submittedDate}
+          selectedTime={submittedTime}
         />
       </Grid>
 

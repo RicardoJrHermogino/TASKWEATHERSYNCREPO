@@ -5,7 +5,7 @@ import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import ThunderstormRoundedIcon from '@mui/icons-material/ThunderstormRounded';
 import AddIcon from '@mui/icons-material/Add';
 import { useRouter } from 'next/router';
-import CheckTaskFeasibilityPage from '../ScheduleTask';
+import CheckTaskFeasibilityPage from '../checktask';
 
 const StyledLink = styled(Link)`
   && {

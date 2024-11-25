@@ -57,8 +57,8 @@ const WeatherMap = () => {
     const iconElement = document.createElement('div');
     iconElement.style.backgroundImage = `url(${iconUrl})`;
     iconElement.style.backgroundSize = 'contain';
-    iconElement.style.width = '60px';
-    iconElement.style.height = '60px';
+    iconElement.style.width = '35px';
+    iconElement.style.height = '35px';
     iconElement.style.display = 'flex';
     iconElement.style.justifyContent = 'center';
     iconElement.style.alignItems = 'center';
@@ -77,7 +77,7 @@ const WeatherMap = () => {
     const weatherLayerUrl = `https://tile.openweathermap.org/map/{layer}/{z}/{x}/{y}.png?appid=${OPENWEATHER_API_KEY}`;
 
     // Add weather layers for a specific type (e.g., clouds, temperature, etc.)
-    const layers = ['clouds_new', 'precipitation', ];
+    const layers = ['clouds_new'];
 
     layers.forEach((layer) => {
       map.addSource(`${layer}-layer`, {
@@ -165,9 +165,8 @@ const WeatherMap = () => {
   };
 
   return (
-    <Grid alignItems={'center'}>
-      <Typography variant="h6" sx={{ marginBottom: '10px' }}>Weather Map</Typography>
-      <Grid id="weather-map" style={{ height: '250px', width: '100%' }}></Grid>
+    <Grid alignItems={'center'} style={{ width: '100%', height: '100%' }}>
+      <Grid id="weather-map" style={{ height: '100%', width: '100%' }}></Grid>
     </Grid>
   );
 };

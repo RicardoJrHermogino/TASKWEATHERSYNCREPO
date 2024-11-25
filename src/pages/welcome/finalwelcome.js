@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Typography, Button, CssBaseline, Box, Stack } from '@mui/material';
-import { WbSunny, CloudQueue, CalendarMonth } from '@mui/icons-material';
+import { WbSunny, CloudQueue, CalendarMonth, Map } from '@mui/icons-material'; // Import Map icon
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/router';
 import getOrCreateUUID from '../../utils/uuid';
@@ -24,7 +24,7 @@ const WelcomeFeatures = () => {
     }, 250);
   };
 
-  // useEffect(() => {
+    // useEffect(() => {
   //   const checkUserStatus = async () => {
   //     // Try to retrieve the userId from Preferences
   //     const { value: userId } = await Preferences.get({ key: 'userId' });
@@ -45,7 +45,6 @@ const WelcomeFeatures = () => {
   //   checkUserStatus();
   // }, [router]);
 
-  
 
   const features = [
     {
@@ -63,11 +62,11 @@ const WelcomeFeatures = () => {
       title: "Weather Alerts",
       description: "Get notified about weather changes affecting your tasks"
     },
-    // New feature stack
+    // Updated fourth feature with "Weather Map Visualization"
     {
-      icon: <WbSunny sx={{ width: 32, height: 32, color: '#FFB800' }} />,
-      title: "Pest Control",
-      description: "Stay informed about pest conditions to protect your crops"
+      icon: <Map sx={{ width: 32, height: 32, color: '#4CAF50' }} />,  // Green map icon
+      title: "Weather Map Visualization",
+      description: "Interactive weather map to visualize weather forecasts"
     },
   ];
 

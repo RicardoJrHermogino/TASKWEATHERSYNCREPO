@@ -254,11 +254,19 @@
 
     const handleSubmit = async (e) => {
       e.preventDefault();
+
+      // New validation: Check if selected date is future and time is 'Now'
+      if (dayjs(selectedDate).isAfter(dayjs(), 'day') && selectedTime === 'Now') {
+        toast.error("You cannot select 'Now' for a future date. Please choose a specific time.");
+        return;
+      }      
   
       if (!selectedTask || !selectedLocation || !selectedTime) {
         toast.error("Please fill all fields before submitting.");
         return;
       }
+
+
   
       console.group('Submit Details');
       console.log('Selected Task:', selectedTask);
@@ -334,8 +342,9 @@
       fontWeight: 'bold', // Make it bold for more prominence
       borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
       color: '#333', // Darker text color for better contrast
+      mb:'20px'
     }}>
-      Create your circle with the same passion & interest
+      Check If the Weather is Right for Your Task
     </DialogTitle>
 
     <DialogContent sx={{ 

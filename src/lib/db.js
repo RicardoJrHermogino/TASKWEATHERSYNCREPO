@@ -1,3 +1,4 @@
+
 import mysql from 'mysql2/promise';
 
 const pool = mysql.createPool({
@@ -11,9 +12,9 @@ export const getConnection = async () => {
   return await pool.getConnection();
 };
 
-export const getTasksFromDatabase = async () => {
+export async function getTasksFromDatabase() {
   try {
-    const [rows] = await pool.execute('SELECT * FROM coconut_tasks');
+    const [rows] = await pool.query('SELECT * FROM coconut_tasks');
     return rows;
   } catch (error) {
     console.error('Database query error:', error);

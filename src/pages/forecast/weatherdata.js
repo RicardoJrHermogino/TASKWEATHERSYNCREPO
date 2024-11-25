@@ -14,47 +14,47 @@ const WeatherData = () => {
                     </Typography>
                   </Grid>
                 <Grid item xs={12}>
-                    <Card sx={{ backgroundColor: "#302c2c", borderRadius: 5 }}>
+                    <Card sx={{ borderRadius: 5 }}>
                         <CardContent>
                             <Grid container spacing={6} sx={{ textAlign: "center" }}>
                                 <Grid item xs={4}>
-                                <Icon icon="uil:cloud-wind" color="#fff" fontSize={45} />
-                                <Typography variant="h6" color="#fff" sx={{ mt: 1 }}>
+                                <Icon icon="uil:cloud-wind"  fontSize={45} />
+                                <Typography variant="h6"  sx={{ mt: 1 }}>
                                     136
                                 </Typography>
                                 <Typography color="#b3b3b3">Air Quality</Typography>
                                 </Grid>
                                 <Grid item xs={4}>
-                                <Icon icon="lets-icons:pressure" color="#fff" fontSize={45} />
-                                <Typography variant="h6" color="#fff" sx={{ mt: 1 }}>
+                                <Icon icon="lets-icons:pressure"  fontSize={45} />
+                                <Typography variant="h6" sx={{ mt: 1 }}>
                                     846hpa
                                 </Typography>
                                 <Typography color="#b3b3b3">Pressure</Typography>
                                 </Grid>
                                 <Grid item xs={4}>
-                                <Icon icon="mdi:uv-ray-outline" color="#fff" fontSize={45} />
-                                <Typography variant="h6" color="#fff" sx={{ mt: 1 }}>
+                                <Icon icon="mdi:uv-ray-outline" fontSize={45} />
+                                <Typography variant="h6"  sx={{ mt: 1 }}>
                                     2
                                 </Typography>
                                 <Typography color="#b3b3b3">UV</Typography>
                                 </Grid>
                                 <Grid item xs={4}>
-                                <Icon icon="mingcute:rain-line" color="#fff" fontSize={45} />
-                                <Typography variant="h6" color="#fff" sx={{ mt: 1 }}>
+                                <Icon icon="mingcute:rain-line"  fontSize={45} />
+                                <Typography variant="h6" sx={{ mt: 1 }}>
                                     4mm
                                 </Typography>
                                 <Typography color="#b3b3b3">Precipitation</Typography>
                                 </Grid>
                                 <Grid item xs={4}>
-                                <Icon icon="bx:wind" color="#fff" fontSize={45} />
-                                <Typography variant="h6" color="#fff" sx={{ mt: 1 }}>
+                                <Icon icon="bx:wind" fontSize={45} />
+                                <Typography variant="h6"  sx={{ mt: 1 }}>
                                     11km/h
                                 </Typography>
                                 <Typography color="#b3b3b3">Wind</Typography>
                                 </Grid>
                                 <Grid item xs={4}>
-                                <Icon icon="ph:eye-bold" color="#fff" fontSize={45} />
-                                <Typography variant="h6" color="#fff" sx={{ mt: 1 }}>
+                                <Icon icon="ph:eye-bold"  fontSize={45} />
+                                <Typography variant="h6"  sx={{ mt: 1 }}>
                                     6.4 km
                                 </Typography>
                                 <Typography color="#b3b3b3">Visibility</Typography>

@@ -4,8 +4,6 @@ import {
   Typography, 
   Card, 
   CardContent, 
-  Button, 
-  CircularProgress,
   Alert,
   Skeleton 
 } from '@mui/material';
@@ -15,7 +13,7 @@ import { AlertCircle, Clock } from 'lucide-react';
 
 const AllRecommendedTasksPage = () => {
   const router = useRouter();
-  const { location, selectedDate, useCurrentWeather } = router.query;
+  const { location, selectedDate, useCurrentWeather, weatherData } = router.query;
 
   const [fetchedTasks, setFetchedTasks] = useState([]);
   const [recommendedTasksByInterval, setRecommendedTasksByInterval] = useState([]);
@@ -24,8 +22,40 @@ const AllRecommendedTasksPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Transform database weather format to match OpenWeatherMap format
+  const transformDatabaseWeather = (dbWeather) => {
+    return {
+      weather: [
+        {
+          id: dbWeather.weather_id,
+          main: "",
+          description: "",
+          icon: ""
+        }
+      ],
+      main: {
+        temp: dbWeather.temperature,
+        pressure: dbWeather.pressure,
+        humidity: dbWeather.humidity
+      },
+      wind: {
+        speed: dbWeather.wind_speed,
+        gust: dbWeather.wind_gust
+      },
+      clouds: {
+        all: dbWeather.clouds
+      },
+      dt_txt: `${dbWeather.date} ${dbWeather.time}`
+    };
+  };
+
+  // Validate and parse weather data
   const validateWeatherData = (data) => {
     if (!data) return null;
+
+    if ('temperature' in data) {
+      return transformDatabaseWeather(data);
+    }
 
     const requiredProps = ['main', 'wind', 'clouds', 'weather'];
     if (!requiredProps.every(prop => data[prop])) {
@@ -62,12 +92,44 @@ const AllRecommendedTasksPage = () => {
     });
   };
 
-  const isSelectedDate = (dateStr) => {
-    const forecastDate = new Date(dateStr);
-    const forecastDateStr = forecastDate.toISOString().split('T')[0];
-    return forecastDateStr === selectedDate;
+  // Get recommended tasks based on weather conditions
+  const getRecommendedTasks = (weatherData, tasks) => {
+    try {
+      const validatedData = validateWeatherData(weatherData);
+      if (!validatedData) return [];
+  
+      const { main, wind, clouds, weather } = validatedData;
+      const weatherConditionCode = weather[0]?.id;
+  
+      return tasks.filter(task => {
+        try {
+          const weatherRestrictions = JSON.parse(task.weatherRestrictions || '[]');
+  
+          return (
+            main.temp >= task.requiredTemperature_min &&
+            main.temp <= task.requiredTemperature_max &&
+            main.humidity >= task.idealHumidity_min &&
+            main.humidity <= task.idealHumidity_max &&
+            main.pressure >= task.requiredPressure_min &&
+            main.pressure <= task.requiredPressure_max &&
+            wind.speed <= task.requiredWindSpeed_max &&
+            (wind.gust || 0) <= task.requiredWindGust_max &&
+            clouds.all <= task.requiredCloudCover_max &&
+            (weatherRestrictions.length === 0 ||
+              weatherRestrictions.includes(weatherConditionCode))
+          );
+        } catch (error) {
+          console.error(`Error processing task ${task.task}:`, error);
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error('Error in getRecommendedTasks:', error);
+      return [];
+    }
   };
 
+  // Fetch tasks effect
   useEffect(() => {
     const fetchTasks = async () => {
       setIsLoading(true);
@@ -96,54 +158,99 @@ const AllRecommendedTasksPage = () => {
     fetchTasks();
   }, []);
 
+  // Fetch weather and generate recommendations effect
   useEffect(() => {
-    const fetchWeatherData = async () => {
+    const fetchWeatherAndGenerateRecommendations = async () => {
       if (!fetchedTasks.length) return;
-    
+  
       setIsLoading(true);
       setError(null);
-      
+  
       try {
-        const { parsedLocation, coordinates } = validateLocation();
-        const { lat, lon } = coordinates;
-        const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
-    
-        if (useCurrentWeather === 'true') {
+        const { parsedLocation } = validateLocation();
+  
+        // Handle current weather
+        if (useCurrentWeather === 'true' && weatherData) {
+          const parsedWeatherData = JSON.parse(weatherData);
+          const validatedCurrentWeather = validateWeatherData(parsedWeatherData);
+  
+          if (validatedCurrentWeather) {
+            console.log('Using weather data:', validatedCurrentWeather); // Add this line
+  
+            const recommendedTasks = getRecommendedTasks(validatedCurrentWeather, fetchedTasks);
+            const currentTime = formatTime(new Date());
+  
+            setRecommendedTasksByInterval([{
+              time: currentTime,
+              tasks: recommendedTasks,
+              weather: validatedCurrentWeather
+            }]);
+  
+            // Cache the recommendations
+            localStorage.setItem('lastRecommendedTasks', JSON.stringify([{
+              time: currentTime,
+              tasks: recommendedTasks,
+              weather: validatedCurrentWeather
+            }]));
+          }
+        } 
+        // Handle forecasted weather
+        else if (selectedDate) {
           const response = await fetch(
-            `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`
+            `/api/getWeatherData?location=${encodeURIComponent(parsedLocation)}&date=${selectedDate}`
           );
-          if (!response.ok) throw new Error(`Weather API error: ${response.status}`);
+  
+          if (!response.ok) throw new Error(`Database fetch error: ${response.status}`);
           const data = await response.json();
-          setCurrentWeatherData(validateWeatherData(data));
-        } else if (selectedDate) {
-          const response = await fetch(
-            `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`
-          );
-    
-          if (!response.ok) throw new Error(`Forecast API error: ${response.status}`);
-          const data = await response.json();
-    
+  
+          // Filter and process weather data
+          const normalizedSelectedDate = new Date(selectedDate).toISOString().split('T')[0];
           const targetHours = [3, 6, 9, 12, 15, 18];
-    
-          // Filter forecasts by selected date and target hours
-          const selectedDateForecasts = data.list
-            .filter(item => {
-              const forecastDate = new Date(item.dt_txt);
-              const selectedDateObj = new Date(selectedDate);
-              return forecastDate.getFullYear() === selectedDateObj.getFullYear() &&
-                     forecastDate.getMonth() === selectedDateObj.getMonth() &&
-                     forecastDate.getDate() === selectedDateObj.getDate() &&
-                     targetHours.includes(forecastDate.getHours());
-            })
-            .map(validateWeatherData)
-            .filter(Boolean) // Remove any null values from validation
-            .sort((a, b) => new Date(a.dt_txt) - new Date(b.dt_txt));
-    
-          console.log("Filtered forecast data:", selectedDateForecasts);
-          setForecastedWeatherData(selectedDateForecasts);
+          const hourlyForecasts = new Map();
+  
+          data.forEach(item => {
+            const itemDate = new Date(item.date).toISOString().split('T')[0];
+            if (itemDate === normalizedSelectedDate && 
+                item.location.toLowerCase() === parsedLocation.toLowerCase()) {
+              
+              const forecastTime = new Date(`${item.date} ${item.time}`);
+              const hour = forecastTime.getHours();
+              const closestTargetHour = targetHours.reduce((closest, target) => {
+                return Math.abs(hour - target) < Math.abs(hour - closest) ? target : closest;
+              }, targetHours[0]);
+  
+              const key = `${normalizedSelectedDate}-${closestTargetHour}`;
+              const validatedData = validateWeatherData(item);
+              
+              if (validatedData && (!hourlyForecasts.has(key) || 
+                  Math.abs(hour - closestTargetHour) < 
+                  Math.abs(new Date(hourlyForecasts.get(key).dt_txt).getHours() - closestTargetHour))) {
+                hourlyForecasts.set(key, validatedData);
+              }
+            }
+          });
+  
+          // Log the weather data for forecasted weather as well
+          console.log('Using weather data:', Array.from(hourlyForecasts.values()));
+  
+          // Generate recommendations for each time interval
+          const recommendations = Array.from(hourlyForecasts.values())
+            .sort((a, b) => new Date(a.dt_txt) - new Date(b.dt_txt))
+            .map(weatherData => ({
+              time: formatTime(new Date(weatherData.dt_txt)),
+              tasks: getRecommendedTasks(weatherData, fetchedTasks),
+              weather: weatherData
+            }))
+            .filter(interval => interval.tasks.length > 0);
+  
+          setRecommendedTasksByInterval(recommendations);
+  
+          // Cache the recommendations
+          localStorage.setItem('lastRecommendedTasks', JSON.stringify(recommendations));
         }
       } catch (error) {
         setError(error.message);
+        console.error("Error in fetchWeatherAndGenerateRecommendations:", error);
         const cachedTasks = localStorage.getItem('lastRecommendedTasks');
         if (cachedTasks) {
           setRecommendedTasksByInterval(JSON.parse(cachedTasks));
@@ -152,78 +259,10 @@ const AllRecommendedTasksPage = () => {
         setIsLoading(false);
       }
     };
-    
-
-    fetchWeatherData();
-  }, [fetchedTasks, location, selectedDate, useCurrentWeather]);
-
-  const getRecommendedTasks = (weatherData, tasks) => {
-    try {
-      const validatedData = validateWeatherData(weatherData);
-      if (!validatedData) return [];
   
-      const { main, wind, clouds, weather } = validatedData;
-      const weatherConditionCode = weather[0]?.id; // Weather condition ID
+    fetchWeatherAndGenerateRecommendations();
+  }, [fetchedTasks, location, selectedDate, useCurrentWeather, weatherData]);
   
-      return tasks.filter(task => {
-        try {
-          const weatherRestrictions = JSON.parse(task.weatherRestrictions || '[]');
-  
-          return (
-            main.temp >= task.requiredTemperature_min &&
-            main.temp <= task.requiredTemperature_max &&
-            main.humidity >= task.idealHumidity_min &&
-            main.humidity <= task.idealHumidity_max &&
-            main.pressure >= task.requiredPressure_min &&
-            main.pressure <= task.requiredPressure_max &&
-            wind.speed <= task.requiredWindSpeed_max &&
-            (wind.gust || 0) <= task.requiredWindGust_max &&
-            clouds.all <= task.requiredCloudCover_max &&
-            (weatherRestrictions.length === 0 ||
-              weatherRestrictions.includes(weatherConditionCode)) // Ensure this check is here
-          );
-        } catch (error) {
-          console.error(`Error processing task ${task.task}:`, error);
-          return false;
-        }
-      });
-    } catch (error) {
-      console.error('Error in getRecommendedTasks:', error);
-      return [];
-    }
-  };
-  
-
-  useEffect(() => {
-    if (isLoading) return;
-
-    try {
-      let tasksByInterval = [];
-
-      if (useCurrentWeather === 'true' && currentWeatherData) {
-        const currentWeatherTasks = getRecommendedTasks(currentWeatherData, fetchedTasks);
-        tasksByInterval = [{ time: 'Current Weather', tasks: currentWeatherTasks }];
-      } else if (useCurrentWeather === 'false' && forecastedWeatherData.length > 0) {
-        tasksByInterval = forecastedWeatherData
-          .map(interval => {
-            const tasksForInterval = getRecommendedTasks(interval, fetchedTasks);
-            return {
-              time: formatTime(interval.dt_txt),
-              tasks: tasksForInterval,
-            };
-          })
-          .filter(interval => interval.tasks.length > 0);
-      }
-
-      if (tasksByInterval.length > 0) {
-        setRecommendedTasksByInterval(tasksByInterval);
-        localStorage.setItem('lastRecommendedTasks', JSON.stringify(tasksByInterval));
-      }
-    } catch (error) {
-      setError('Error calculating task recommendations');
-      console.error('Error in task calculation:', error);
-    }
-  }, [fetchedTasks, currentWeatherData, forecastedWeatherData, useCurrentWeather, isLoading]);
 
   if (isLoading) {
     return (
@@ -279,9 +318,14 @@ const AllRecommendedTasksPage = () => {
                 <Typography variant="h5" gutterBottom>
                   Tasks for {interval.time}
                 </Typography>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Temperature: {interval.weather.main.temp}°C | 
+                  Humidity: {interval.weather.main.humidity}% | 
+                  Wind: {interval.weather.wind.speed} m/s
+                </Typography>
                 {interval.tasks.map((task, taskIndex) => (
-                  <Typography key={taskIndex} variant="body1">
-                    {task.task}
+                  <Typography key={taskIndex} variant="body1" sx={{ mt: 1 }}>
+                    • {task.task}
                   </Typography>
                 ))}
               </CardContent>

@@ -36,12 +36,11 @@ const getWeatherIcon = (weatherId, selectedDate, selectedTime, isCurrentWeather)
     // Rain
     case 500:  // Light rain
     case 501:  // Moderate rain
+      return nightTime ? "/3d-weather-icons/moon/1.png" : "/3d-weather-icons/sun/8.png";
     case 502:  // Heavy rain
     case 503:  // Very heavy rain
     case 504:  // Extreme rain
-      return nightTime ? "/3d-weather-icons/moon/1.png" : "/3d-weather-icons/sun/8.png";
     case 511:  // Freezing rain
-      return "/3d-weather-icons/rain/39.png";
     case 520:  // Light intensity shower rain
     case 521:  // Shower rain
     case 522:  // Heavy intensity shower rain
@@ -111,8 +110,9 @@ const mapWeatherCondition = (weatherId, selectedDate, isCurrentWeather) => {
       return "Cloudy";
     
     case 500: 
-    case 501:
       return "Light Rain";
+    case 501:
+      return "Moderate Rain";
     case 502: 
     case 503:
       return "Heavy Rain";
@@ -175,24 +175,31 @@ const mapWeatherCondition = (weatherId, selectedDate, isCurrentWeather) => {
 };
 
 const getFarmingMessage = (weatherId, temperature) => {
-  if (weatherId === 503 || weatherId === 504) {
-    return "Heavy rain expected. Avoid working in the coconut fields.";
+  if (weatherId === 502 ||weatherId === 503 || weatherId === 504) {
+    return "Heavy rain is expected soon. It’s best to avoid working in the coconut fields to prevent soil erosion and protect your crops.";
   } else if (weatherId === 500) {
-    return "Light rain expected. Suitable for light work around coconut areas.";
-  } else if (weatherId === 502) {
-    return "Moderate rain. Be cautious in the coconut fields, avoid heavy activity.";
+    return "Light rain may begin shortly. While it's not raining now, it's a good time to prepare for light tasks in the coconut fields, like checking for pests or trimming leaves.";
+  } else if (weatherId === 501) {
+    return "Moderate rain is expected. Be cautious in the coconut fields, and avoid heavy tasks like harvesting or using heavy machinery.";
   } else if (weatherId === 800 && temperature > 30) {
-    return "Hot day! Ensure coconut plants are well-watered.";
+    return "Hot and sunny conditions today! Make sure your coconut plants are well-watered, especially in the afternoon when the heat peaks.";
   } else if (weatherId === 804 || weatherId === 741) {
-    return "Cloudy or foggy. Good conditions for general upkeep in the coconut farm.";
+    return "Cloudy or foggy weather. Visibility might be low, so it’s a good time for lighter tasks like weeding or checking the irrigation system.";
   } else if (weatherId === 200 || weatherId === 210) {
-    return "Thunderstorms predicted. It's unsafe to work near coconut trees.";
+    return "Thunderstorms are predicted. It’s not safe to work near coconut trees, as lightning poses a serious risk. Stay indoors if possible.";
   } else if (weatherId === 600 || weatherId === 602) {
-    return "Snow or sleet predicted. Avoid outdoor activities.";
+    return "Snow or sleet is predicted. Outdoor activities are not advisable. Focus on indoor maintenance tasks or restock supplies.";
+  } else if (weatherId === 801 || weatherId === 802 || weatherId === 803) {
+    return "Cloudy skies with no rain expected for now. It's a good day to carry out general farm maintenance like fertilizing or pruning.";
+  } else if (weatherId === 701 || weatherId === 741) {
+    return "Foggy conditions ahead. Visibility may be poor, so avoid working in open areas or near machinery to stay safe.";
+  } else if (weatherId === 300 || weatherId === 301 || weatherId === 302 || weatherId === 310 || weatherId === 311 || weatherId === 312 || weatherId === 313 || weatherId === 314 || weatherId === 321) {
+    return "Light drizzle is possible soon. It's not heavy rain yet, but it’s a good idea to prepare for light moisture, which could impact tasks like planting or spraying.";
   } else {
-    return "Weather looks stable for regular coconut farming activities.";
+    return "The weather looks stable today, making it a good day for regular coconut farming activities, including harvesting and irrigation.";
   }
 };
+
 
 
 const WeatherDisplay = ({ 
