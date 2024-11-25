@@ -17,6 +17,8 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 import CloseIcon from '@mui/icons-material/Close'; 
 import NotificationDrawer from './dashboardcomp/NotificationDrawer';
 import { useLocation } from '@/utils/LocationContext'; // Import the custom hook
+import { Preferences } from '@capacitor/preferences'; // Add this import to get the userId
+
 
 
 const Dashboard = () => {
@@ -40,6 +42,18 @@ const Dashboard = () => {
   const [notifications, setNotifications] = useState([]); 
   const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false); 
   const [weatherId, setWeatherId] = useState(null);
+  const [userId, setUserId] = useState(null); // State for storing the userId
+
+    // Fetch userId from Preferences
+    useEffect(() => {
+      const fetchUserId = async () => {
+        const { value } = await Preferences.get({ key: 'userId' });
+        setUserId(value);
+      };
+  
+      fetchUserId();
+    }, []);
+  
 
   const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY; 
 
@@ -247,6 +261,14 @@ const Dashboard = () => {
           </Typography>
           <Typography letterSpacing={4}><strong>Coconut Farmer!</strong></Typography>
         </Grid>
+
+        {/* Display userId */}
+        <Grid item xs={12}>
+          <Typography variant="body1" color="textSecondary">
+            Your User ID: <strong>{userId || "Loading..."}</strong>
+          </Typography>
+        </Grid>
+
 
         {/* Weather Display Component */}
         <WeatherDisplay 
