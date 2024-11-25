@@ -23,26 +23,26 @@ const WelcomeGreetings = () => {
     }, 250);
   };
 
-      // useEffect(() => {
-    //   const checkUserStatus = async () => {
-    //     // Try to retrieve the userId from Preferences
-    //     const { value: userId } = await Preferences.get({ key: 'userId' });
+      useEffect(() => {
+      const checkUserStatus = async () => {
+        // Try to retrieve the userId from Preferences
+        const { value: userId } = await Preferences.get({ key: 'userId' });
   
-    //     if (userId) {
-    //       // If userId exists, redirect to the dashboard
-    //       router.push('/dashboard');
-    //     } else {
-    //       // If userId does not exist, generate and save a new one
-    //       const newUserId = getOrCreateUUID();
-    //       await Preferences.set({
-    //         key: 'userId',
-    //         value: newUserId,
-    //       });
-    //     }
-    //   };
+        if (userId) {
+          // If userId exists, redirect to the dashboard
+          router.push('/dashboard');
+        } else {
+          // If userId does not exist, generate and save a new one
+          const newUserId = getOrCreateUUID();
+          await Preferences.set({
+            key: 'userId',
+            value: newUserId,
+          });
+        }
+      };
   
-    //   checkUserStatus();
-    // }, [router]);
+      checkUserStatus();
+    }, [router]);
 
   return (
     <>
