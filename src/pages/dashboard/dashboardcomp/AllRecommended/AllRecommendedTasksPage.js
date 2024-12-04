@@ -5,11 +5,48 @@ import {
   Card, 
   CardContent, 
   Alert,
-  Skeleton 
+  Skeleton,
+  Box,
+  Chip,
+  Paper,
+  Container,
+  Divider,
+  Tabs,
+  Tab
 } from '@mui/material';
+import { 
+  WbSunny as SunIcon, 
+  WaterDrop as HumidityIcon, 
+  Air as WindIcon, 
+  WbCloudy as CloudIcon,
+  WbTornado as ThunderstormIcon,
+  AcUnit as SnowIcon,
+  CloudCircle as AtmosphereIcon
+} from '@mui/icons-material';
 import { useRouter } from 'next/router';
 import { locationCoordinates } from '@/utils/locationCoordinates';
-import { AlertCircle, Clock } from 'lucide-react';
+
+
+const WeatherIcon = ({ weatherId }) => {
+  const getWeatherIcon = (id) => {
+    if (id >= 200 && id < 300) return <ThunderstormIcon color="primary" />;
+    if (id >= 300 && id < 400) return <CloudIcon color="info" />;
+    if (id >= 500 && id < 600) return <CloudIcon color="info" />;
+    if (id >= 600 && id < 700) return <SnowIcon color="info" />;
+    if (id >= 700 && id < 800) return <AtmosphereIcon color="disabled" />;
+    if (id === 800) return <SunIcon color="warning" />;
+    if (id > 800 && id < 805) return <CloudIcon color="inherit" />;
+    return <CloudIcon color="inherit" />;
+  };
+
+  return (
+    <Box sx={{ fontSize: 40, display: 'flex', alignItems: 'center' }}>
+      {getWeatherIcon(weatherId)}
+    </Box>
+  );
+};
+
+
 
 const AllRecommendedTasksPage = () => {
   const router = useRouter();
@@ -21,7 +58,12 @@ const AllRecommendedTasksPage = () => {
   const [currentWeatherData, setCurrentWeatherData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedTabIndex, setSelectedTabIndex] = useState(0);
 
+
+  const handleTabChange = (event, newValue) => {
+    setSelectedTabIndex(newValue);
+  };
   // Transform database weather format to match OpenWeatherMap format
   const transformDatabaseWeather = (dbWeather) => {
     return {
@@ -263,77 +305,189 @@ const AllRecommendedTasksPage = () => {
     fetchWeatherAndGenerateRecommendations();
   }, [fetchedTasks, location, selectedDate, useCurrentWeather, weatherData]);
   
+  const getDifficultyColor = (difficulty) => {
+    switch (difficulty) {
+      case 'Easy': return 'success';
+      case 'Medium': return 'warning';
+      case 'Hard': return 'error';
+      default: return 'default';
+    }
+  };
+
+
 
   if (isLoading) {
     return (
-      <Grid container spacing={2} sx={{ p: 2 }}>
-        <Grid item xs={12}>
-          <Skeleton variant="text" width="60%" height={40} />
+      <Container maxWidth="md" sx={{ mt: 4 }}>
+        <Grid container spacing={2}>
           {[1, 2, 3].map((_, index) => (
-            <Card key={index} sx={{ my: 2, borderRadius: 7 }}>
-              <CardContent>
-                <Skeleton variant="text" width="30%" />
-                <Skeleton variant="text" width="80%" />
-                <Skeleton variant="text" width="70%" />
-              </CardContent>
-            </Card>
+            <Grid item xs={12} key={index}>
+              <Card sx={{ mb: 2 }}>
+                <CardContent>
+                  <Skeleton variant="text" width="60%" height={40} />
+                  <Skeleton variant="text" width="40%" />
+                  {[1, 2].map((_, taskIndex) => (
+                    <Skeleton 
+                      key={taskIndex}
+                      variant="rectangular" 
+                      height={60} 
+                      sx={{ mt: 2, borderRadius: 2 }} 
+                    />
+                  ))}
+                </CardContent>
+              </Card>
+            </Grid>
           ))}
         </Grid>
-      </Grid>
+      </Container>
     );
   }
 
   const parsedLocation = location?.replace(/"/g, '').trim() || 'Unknown Location';
 
   return (
-    <Grid container spacing={2} sx={{ p: 2 }}>
+    <Container maxWidth="md" sx={{ mt: 4 }}>
+      <Typography 
+        variant="h4" 
+        component="h1" 
+        gutterBottom 
+        sx={{ 
+          mb: 3, 
+          textAlign: 'center', 
+          fontWeight: 'bold', 
+          color: 'primary.main' 
+        }}
+      >
+        Recommended Tasks for {location} 
+        {selectedDate && ` on ${selectedDate}`}
+      </Typography>
+
       {error && (
-        <Grid item xs={12}>
-          <Alert 
-            severity="error"
-            icon={<AlertCircle className="h-5 w-5" />}
-            sx={{ mb: 2 }}
-          >
-            {error}
-            {recommendedTasksByInterval.length > 0 && ' - Showing cached recommendations'}
-          </Alert>
-        </Grid>
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
       )}
-      <Grid item xs={12}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Recommended Tasks for {parsedLocation} on {selectedDate}
-        </Typography>
-      </Grid>
+
       {recommendedTasksByInterval.length === 0 ? (
-        <Grid item xs={12}>
-          <Alert severity="info" icon={<Clock className="h-5 w-5" />}>
-            No tasks recommended for the selected date and weather conditions.
-          </Alert>
-        </Grid>
+        <Alert severity="info">
+          No tasks recommended for the selected date and weather conditions.
+        </Alert>
       ) : (
-        recommendedTasksByInterval.map((interval, index) => (
-          <Grid item xs={12} key={index}>
-            <Card sx={{ borderRadius: 7, mb: 2 }}>
-              <CardContent>
-                <Typography variant="h5" gutterBottom>
-                  Tasks for {interval.time}
-                </Typography>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                  Temperature: {interval.weather.main.temp}°C | 
-                  Humidity: {interval.weather.main.humidity}% | 
-                  Wind: {interval.weather.wind.speed} m/s
-                </Typography>
-                {interval.tasks.map((task, taskIndex) => (
-                  <Typography key={taskIndex} variant="body1" sx={{ mt: 1 }}>
-                    • {task.task}
-                  </Typography>
-                ))}
-              </CardContent>
-            </Card>
-          </Grid>
-        ))
+        <>
+          <Tabs
+            value={selectedTabIndex}
+            onChange={handleTabChange}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{ 
+              mb: 3,
+              '& .MuiTabs-indicator': {
+                backgroundColor: 'primary.main'
+              }
+            }}
+          >
+            {recommendedTasksByInterval.map((interval, index) => (
+              <Tab 
+                key={index} 
+                label={interval.time} 
+                sx={{ 
+                  textTransform: 'none',
+                  '&.Mui-selected': { 
+                    fontWeight: 'bold',
+                    color: 'primary.main' 
+                  }
+                }} 
+              />
+            ))}
+          </Tabs>
+
+          {/* Render the selected interval's tasks */}
+          <Card 
+            sx={{ 
+              borderRadius: 3,
+              transition: 'transform 0.3s',
+              '&:hover': { 
+                transform: 'scale(1.02)',
+                boxShadow: 3 
+              }
+            }}
+          >
+            <CardContent>
+              {(() => {
+                const interval = recommendedTasksByInterval[selectedTabIndex];
+                return (
+                  <>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Typography variant="h5" color="primary">
+                        {interval.time}
+                      </Typography>
+                      <WeatherIcon weatherId={interval.weather.weather[0].id} />
+                    </Box>
+
+                    <Grid container spacing={2} sx={{ mb: 2 }}>
+                      <Grid item xs={4}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <SunIcon color="warning" sx={{ mr: 1 }} />
+                          <Typography>{interval.weather.main.temp}°C</Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={4}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <HumidityIcon color="primary" sx={{ mr: 1 }} />
+                          <Typography>{interval.weather.main.humidity}%</Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={4}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <WindIcon color="success" sx={{ mr: 1 }} />
+                          <Typography>{interval.weather.wind.speed} m/s</Typography>
+                        </Box>
+                      </Grid>
+                    </Grid>
+
+                    <Divider sx={{ mb: 2 }} />
+
+                    {interval.tasks.length === 0 ? (
+                      <Alert severity="info">
+                        No tasks recommended for this time interval.
+                      </Alert>
+                    ) : (
+                      interval.tasks.map((task, taskIndex) => (
+                        <Paper 
+                          key={taskIndex} 
+                          elevation={1} 
+                          sx={{ 
+                            p: 2, 
+                            mb: 2, 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center' 
+                          }}
+                        >
+                          <Box>
+                            <Typography variant="subtitle1" fontWeight="bold">
+                              {task.task_name}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {task.description}
+                            </Typography>
+                          </Box>
+                          <Chip 
+                            label={task.difficulty} 
+                            color={getDifficultyColor(task.difficulty)} 
+                            size="small" 
+                          />
+                        </Paper>
+                      ))
+                    )}
+                  </>
+                );
+              })()}
+            </CardContent>
+          </Card>
+        </>
       )}
-    </Grid>
+    </Container>
   );
 };
 

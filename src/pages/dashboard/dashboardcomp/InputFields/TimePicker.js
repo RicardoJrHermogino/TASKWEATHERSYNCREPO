@@ -1,10 +1,17 @@
 import { Select, MenuItem, Grid, InputLabel, FormControl, OutlinedInput, InputAdornment } from '@mui/material';
-import AccessTimeIcon from '@mui/icons-material/AccessTime'; // Import time icon
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import dayjs from 'dayjs';
 
-const CustomTimePicker = ({ selectedTime, setSelectedTime, selectedDate, MenuProps }) => {
+const CustomTimePicker = ({
+  selectedTime,
+  setSelectedTime,
+  selectedDate,
+  availableTimes = [],
+  MenuProps,
+  setHasInteractedWithTime 
+}) => {
   // Predefined time intervals in 24-hour format
-  const timeIntervals = [ '00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'];
+  const timeIntervals = ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'];
 
   // Function to convert 24-hour time to AM/PM format
   const convertToAMPM = (time) => {
@@ -12,19 +19,24 @@ const CustomTimePicker = ({ selectedTime, setSelectedTime, selectedDate, MenuPro
   };
 
   // Get the current date and time
-  const currentDateTime = dayjs(); 
+  const currentDateTime = dayjs();
   const currentDate = currentDateTime.format('YYYY-MM-DD');
 
-  // Filter times based on whether the selected date is today
+  // Filter times based on whether the selected date is today or the last available date
   const availableTimeIntervals = timeIntervals.map((time) => {
     const fullTime = dayjs(`${selectedDate} ${time}`, 'YYYY-MM-DD HH:mm');
 
     // Disable past times only if the selected date is today
-    const isDisabled = selectedDate === currentDate && fullTime.isBefore(currentDateTime);
+    const isPastTime = selectedDate === currentDate && fullTime.isBefore(currentDateTime);
 
-    return {  
+    // Disable times not in the availableTimes array if the selected date is the last forecasted date
+    const isUnavailableForLastDate =
+      selectedDate === availableTimes[availableTimes.length - 1] &&
+      !availableTimes.includes(time);
+
+    return {
       time,
-      isDisabled,
+      isDisabled: isPastTime || isUnavailableForLastDate
     };
   });
 
@@ -32,11 +44,13 @@ const CustomTimePicker = ({ selectedTime, setSelectedTime, selectedDate, MenuPro
   const handleTimeChange = (e) => {
     const newTime = e.target.value;
     const selectedTimeData = availableTimeIntervals.find(item => item.time === newTime);
-
+  
     if (selectedTimeData && !selectedTimeData.isDisabled) {
       setSelectedTime(newTime);
+      setHasInteractedWithTime(true); // Set this flag to true since the user interacted with the picker
     }
   };
+  
 
   return (
     <Grid item xs={12} sm={12} align="center">
@@ -62,19 +76,18 @@ const CustomTimePicker = ({ selectedTime, setSelectedTime, selectedDate, MenuPro
               style: {
                 maxHeight: '390px',
                 overflowY: 'auto',
-                // Ensure there's no top margin which would push the dropdown down
                 marginTop: '0',
               },
             },
             anchorOrigin: {
-              vertical: 'top', // Open the dropdown at the top of the Select input
-              horizontal: 'left', // Align to the left
+              vertical: 'top',
+              horizontal: 'left',
             },
             transformOrigin: {
-              vertical: 'bottom', // Keep it anchored at the bottom to open above
-              horizontal: 'left', // Align to the left
+              vertical: 'bottom',
+              horizontal: 'left',
             },
-            ...MenuProps, // Spread additional MenuProps if passed
+            ...MenuProps,
           }}
           sx={{
             '& .MuiOutlinedInput-root': {

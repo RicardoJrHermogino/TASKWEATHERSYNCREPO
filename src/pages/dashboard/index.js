@@ -4,11 +4,11 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import dayjs from "dayjs";
 import Navbar from "../components/navbar";
 import axios from 'axios';
-import WeatherDisplay from './dashboardcomp/weatherdisplay';
-import LocationSelect from './dashboardcomp/LocationSelect';
-import DatePicker from './dashboardcomp/DatePicker';
-import CustomTimePicker from './dashboardcomp/TimePicker';
-import RecommendedTask from './dashboardcomp/RecommendedTask';
+import WeatherDisplay from './dashboardcomp/WeatherDisplay/weatherdisplay';
+import LocationSelect from './dashboardcomp/InputFields/LocationSelect';
+import DatePicker from './dashboardcomp/InputFields/DatePicker';
+import CustomTimePicker from './dashboardcomp/InputFields/TimePicker';
+import RecommendedTask from './dashboardcomp/RecommendedTask/RecommendedTask';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { locationCoordinates } from "../../utils/locationCoordinates";
@@ -17,8 +17,6 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 import CloseIcon from '@mui/icons-material/Close'; 
 import NotificationDrawer from './dashboardcomp/NotificationDrawer';
 import { useLocation } from '@/utils/LocationContext'; // Import the custom hook
-import { Preferences } from '@capacitor/preferences'; // Add this import to get the userId
-
 
 
 const Dashboard = () => {
@@ -42,18 +40,12 @@ const Dashboard = () => {
   const [notifications, setNotifications] = useState([]); 
   const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false); 
   const [weatherId, setWeatherId] = useState(null);
-  const [userId, setUserId] = useState(null); // State for storing the userId
+  const [availableForecastTimes, setAvailableForecastTimes] = useState([]);
+  const [isToastVisible, setIsToastVisible] = useState(false);
+  const [hasInteractedWithTime, setHasInteractedWithTime] = useState(false);
 
-    // Fetch userId from Preferences
-    useEffect(() => {
-      const fetchUserId = async () => {
-        const { value } = await Preferences.get({ key: 'userId' });
-        setUserId(value);
-      };
   
-      fetchUserId();
-    }, []);
-  
+
 
   const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY; 
 
@@ -93,7 +85,7 @@ const Dashboard = () => {
       setWeatherId(currentWeather.weather[0].id); 
       setCurrentWeatherData(currentWeather);
       setTemperature(Math.round(currentWeather.main.temp));
-      showSuccessToast("Current Weather data fetched successfully!");
+      showSuccessToast("Current Weather Displayed.");
     } catch (error) {
       showErrorToast("Failed to fetch current weather data.");
     } finally {
@@ -105,39 +97,60 @@ const Dashboard = () => {
   const fetchWeatherData = async (lat, lon) => {
     setLoading(true);
     setIsCurrentWeather(false);
-
+  
     try {
       const response = await axios.get('/api/getWeatherData');
       const forecastData = response.data;
+      
 
+      const lastDate = forecastData[forecastData.length - 1].date;
+      const timesForLastDate = forecastData
+        .filter(item => item.date === lastDate)
+        .map(item => item.time);
 
-      // Ensure the date, time, and location are correctly passed and filtered
+        setAvailableForecastTimes(timesForLastDate);
+  
+      console.log('All Forecast Data:', forecastData);
+      console.log('Selected Location:', location);
+      console.log('Selected Date:', selectedDate);
+      console.log('Selected Time:', selectedTime);
+  
       const selectedDateTime = dayjs(`${selectedDate} ${selectedTime}`);
-      const matchedForecast = forecastData.find(item =>
-        dayjs(`${item.date} ${item.time}`).isSame(selectedDateTime, 'hour') &&
-        item.location === location // Filter by location
-      );
-
+      console.log('Selected DateTime:', selectedDateTime.format());
+  
+      const matchedForecast = forecastData.find(item => {
+        const itemDateTime = dayjs(`${item.date} ${item.time}`);
+        console.log('Item:', item);
+        console.log('Item DateTime:', itemDateTime.format());
+        console.log('Location Match:', item.location === location);
+        console.log('DateTime Match:', itemDateTime.isSame(selectedDateTime, 'hour'));
+        
+        return itemDateTime.isSame(selectedDateTime, 'hour') && item.location === location;
+      });
+  
+      console.log('Matched Forecast:', matchedForecast);
+  
       if (matchedForecast) {
-        const { id } = matchedForecast; // Get the ID of the matched forecast
-
-        // Fetch the full details for the matched forecast by ID
-        const detailResponse = await axios.get(`/api/getWeatherData?id=${id}`);
-        const detailedData = detailResponse.data;
-
-        // Log the detailed weather data
-        console.log('Fetched Detailed Weather Data:', detailedData);
-
-        setWeatherId(detailedData.weather_id);
-        setWeatherData(detailedData);
-        setTemperature(Math.round(detailedData.temperature));
-        showSuccessToast("Forecasted Weather data fetched successfully!");
+        try {
+          const detailResponse = await axios.get(`/api/getWeatherData?weather_data_id=${matchedForecast.weather_data_id}`);
+          const detailedData = detailResponse.data;
+  
+          console.log('Detailed Weather Data:', detailedData);
+  
+          setWeatherId(detailedData.weather_id);
+          setWeatherData(detailedData);
+          setTemperature(Math.round(detailedData.temperature));
+          showSuccessToast("Forecasted Weather Displayed.");
+        } catch (detailError) {
+          console.error('Error fetching detailed weather data:', detailError.response?.data || detailError.message);
+          showErrorToast(`Failed to fetch detailed weather data: ${detailError.response?.data?.message || detailError.message}`);
+        }
       } else {
         showErrorToast("No weather data available for the selected time and location.");
       }
     } catch (error) {
-      console.error('Error fetching weather data:', error);
-      showErrorToast("Failed to fetch weather data.");
+      console.error('Error fetching weather data:', error.response?.data || error.message);
+      showErrorToast(`Failed to fetch weather data: ${error.response?.data?.message || error.message}`);
     } finally {
       setLoading(false);
     }
@@ -158,22 +171,26 @@ const Dashboard = () => {
 
   // Handle the submit action for weather data (date, time, location)
   const handleSubmit = () => {
-    if (!location || !selectedDate || !selectedTime) {
-      showErrorToast("Please complete all inputs");
+    // Ensure all required fields are filled and the user has interacted with the time picker
+    if (!location || !selectedDate || !selectedTime || !hasInteractedWithTime) {
+      showErrorToast("Please complete all inputs, including selecting a time.");
       return;
     }
+  
     setGlobalLocation(location);
     setSubmittedLocation(location);
     setSubmittedDate(selectedDate);
     setSubmittedTime(selectedTime);
-
+  
     // Get coordinates for the selected location
     const { lat, lon } = locationCoordinates[location];
-
+  
     // Fetch the forecast weather data based on the selected location, date, and time
     fetchWeatherData(lat, lon);
     setDrawerOpen(false); // Close the drawer after submission
   };
+  
+
 
   // Handle fetching of current weather when location is selected
   const handleFetchCurrentWeather = () => {
@@ -181,14 +198,23 @@ const Dashboard = () => {
       showErrorToast("Please select a location.");
       return;
     }
+  
     setGlobalLocation(location);
     setSubmittedLocation(location);
     setSubmittedDate(dayjs().format('YYYY-MM-DD'));
-    setSubmittedTime(dayjs().format('HH:mm'));
+    setSubmittedTime(dayjs().format('HH:mm')); // Automatically sets time to current, but this should be allowed.
+  
     const { lat, lon } = locationCoordinates[location];
     fetchCurrentWeatherData(lat, lon);
-    setDrawerOpen(false); 
+  
+    // Set the time interaction flag if it's the user's first time interacting
+    if (!hasInteractedWithTime) {
+      setHasInteractedWithTime(false); // Reset to false, since we're still handling this as automatic
+    }
+  
+    setDrawerOpen(false);
   };
+  
 
   // Notifications for demonstration
   useEffect(() => {
@@ -199,6 +225,31 @@ const Dashboard = () => {
     ];
     setNotifications(exampleNotifications);
   }, []);
+
+
+  useEffect(() => {
+    // Fetch forecast data and extract available times for the last date
+    const fetchInitialForecastData = async () => {
+      try {
+        const response = await axios.get('/api/getWeatherData');
+        const forecastData = response.data;
+  
+        // Find the last forecasted date
+        const lastDate = forecastData[forecastData.length - 1]?.date;
+        const timesForLastDate = forecastData
+          .filter((item) => item.date === lastDate)
+          .map((item) => item.time);
+  
+        setAvailableForecastTimes(timesForLastDate); // Set the available times for the last date
+      } catch (error) {
+        console.error("Error fetching initial forecast data:", error);
+        showErrorToast("Failed to fetch initial forecast data.");
+      }
+    };
+  
+    fetchInitialForecastData();
+  }, []);
+  
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -257,20 +308,13 @@ const Dashboard = () => {
         {/* Greeting Message */}
         <Grid item xs={12}>
           <Typography variant="body2" color="#757575">
-            {greetingMessage},
+            {greetingMessage}, <strong>Coconut Farmer!</strong>
           </Typography>
-          <Typography letterSpacing={4}><strong>Coconut Farmer!</strong></Typography>
+          <Typography letterSpacing={4}></Typography>
         </Grid>
-
-        {/* Display userId */}
-        <Grid item xs={12}>
-          <Typography variant="body1" color="textSecondary">
-            Your User ID: <strong>{userId || "Loading..."}</strong>
-          </Typography>
-        </Grid>
-
 
         {/* Weather Display Component */}
+        
         <WeatherDisplay 
           temperature={temperature} 
           weatherCondition={weatherId} 
@@ -378,12 +422,15 @@ const Dashboard = () => {
             />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <CustomTimePicker 
-              selectedTime={selectedTime} 
-              setSelectedTime={setSelectedTime} 
-              selectedDate={selectedDate}
-            />
+          <CustomTimePicker
+            selectedTime={selectedTime}
+            setSelectedTime={setSelectedTime}
+            selectedDate={selectedDate}
+            availableTimes={availableForecastTimes}
+            setHasInteractedWithTime={setHasInteractedWithTime} // Pass the function here
+          />
           </Grid>
+
         </Grid>
 
         {/* Submit Button */}
@@ -402,7 +449,7 @@ const Dashboard = () => {
             boxShadow: '0px 3px 5px rgba(0, 0, 0, 0.2)',
           }}
         >
-          Check Forecast Weather
+          Check Forecasted Weather
         </Button>
 
         {/* Loading Spinner */}
@@ -416,6 +463,7 @@ const Dashboard = () => {
         notifications={notifications}
       />
       <Toaster />
+
     </LocalizationProvider>
   );
 };

@@ -3,8 +3,7 @@ import { Container, Typography, Button, CssBaseline, Box, Stack } from '@mui/mat
 import { WbSunny, CloudQueue, CalendarMonth, Map } from '@mui/icons-material'; // Import Map icon
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/router';
-import getOrCreateUUID from '../../utils/uuid';
-import { Preferences } from '@capacitor/preferences';
+
 
 
 const WelcomeFeatures = () => {
@@ -24,26 +23,6 @@ const WelcomeFeatures = () => {
     }, 250);
   };
 
-    useEffect(() => {
-    const checkUserStatus = async () => {
-      // Try to retrieve the userId from Preferences
-      const { value: userId } = await Preferences.get({ key: 'userId' });
-
-      if (userId) {
-        // If userId exists, redirect to the dashboard
-        router.push('/dashboard');
-      } else {
-        // If userId does not exist, generate and save a new one
-        const newUserId = getOrCreateUUID();
-        await Preferences.set({
-          key: 'userId',
-          value: newUserId,
-        });
-      }
-    };
-
-    checkUserStatus();
-  }, [router]);
 
 
   const features = [

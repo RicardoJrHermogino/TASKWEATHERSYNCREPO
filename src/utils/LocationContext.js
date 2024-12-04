@@ -11,7 +11,7 @@ export const LocationProvider = ({ children }) => {
   const [location, setLocation] = useState(null); // The location state
   const [isClient, setIsClient] = useState(false); // Client-side flag to ensure no SSR mismatch
 
-  // Default location if no location is found
+  // Default location if no location is found in localStorage
   const defaultLocation = 'Sorsogon City'; // Change this to any default city you'd like
 
   // This effect runs once on the client side to prevent accessing localStorage during SSR
@@ -23,9 +23,16 @@ export const LocationProvider = ({ children }) => {
     if (storedLocation) {
       setLocation(storedLocation);
     } else {
-      setLocation(defaultLocation); // Use default location if no location in localStorage
+      setLocation(defaultLocation); // Use default location if no location is in localStorage
     }
   }, []);
+
+  // Update localStorage when the location changes
+  useEffect(() => {
+    if (location) {
+      localStorage.setItem('location', location);
+    }
+  }, [location]); // Only run this effect when location changes
 
   // Only render children once the component is mounted on the client side
   if (!isClient) {

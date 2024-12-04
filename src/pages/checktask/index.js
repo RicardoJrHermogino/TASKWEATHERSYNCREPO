@@ -1,160 +1,166 @@
-  import React, { useState, useEffect } from 'react';
-  import CloseIcon from '@mui/icons-material/Close';
-  import {
-    Box,
-    Typography,
-    Button,
-    FormControl,
-    TextField,
-    Grid,
-    CircularProgress,
-    Autocomplete,
-    Paper,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    InputLabel,
-    Select,
-    MenuItem,
-    Stack
-  } from '@mui/material';
-  import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-  import CancelIcon from '@mui/icons-material/Cancel';
-  import dayjs from 'dayjs';
-  import { locationCoordinates } from '@/utils/locationCoordinates';
-  import axios from 'axios';
-  import { toast } from 'react-hot-toast';
+import React, { useState, useEffect } from 'react';
+import CloseIcon from '@mui/icons-material/Close';
+import {
+  Box,
+  Typography,
+  Button,
+  FormControl,
+  TextField,
+  Grid,
+  CircularProgress,
+  Autocomplete,
+  Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  InputLabel,
+  Select,
+  MenuItem,
+  Stack
+} from '@mui/material';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
+import dayjs from 'dayjs';
+import { locationCoordinates } from '@/utils/locationCoordinates';
+import axios from 'axios';
+import { toast } from 'react-hot-toast';
+import { Preferences } from '@capacitor/preferences';
 
-  // Custom Paper component for dropdown
-  const CustomPaper = (props) => (
-    <Paper {...props} style={{ maxHeight: 260, overflowY: 'auto', borderRadius: '20px', backgroundColor: '#ecf0f1' }} />
-  );
+// Custom Paper component for dropdown
+const CustomPaper = (props) => (
+  <Paper {...props} style={{ maxHeight: 260, overflowY: 'auto', borderRadius: '20px', backgroundColor: '#ecf0f1' }} />
+);
 
-  const locations = Object.keys(locationCoordinates);
-  const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
+const locations = Object.keys(locationCoordinates);
+const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
 
-  const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
-    const [tasks, setTasks] = useState([]);
-    const [selectedTask, setSelectedTask] = useState('');
-    const [selectedLocation, setSelectedLocation] = useState('');
-    const [selectedDate, setSelectedDate] = useState(dayjs().format('YYYY-MM-DD'));
-    const [selectedTime, setSelectedTime] = useState('');
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [resultMessage, setResultMessage] = useState('');
-    const [isFeasible, setIsFeasible] = useState(false);
-    const [resultOpen, setResultOpen] = useState(false);
+const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
+  const [tasks, setTasks] = useState([]);
+  const [selectedTask, setSelectedTask] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState('');
+  const [selectedDate, setSelectedDate] = useState(dayjs().format('YYYY-MM-DD'));
+  const [selectedTime, setSelectedTime] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [resultMessage, setResultMessage] = useState('');
+  const [isFeasible, setIsFeasible] = useState(false);
+  const [resultOpen, setResultOpen] = useState(false);
+  const [feasibilityResult, setFeasibilityResult] = useState({
+    isFeasible: false,
+    message: ''
+  });
 
-    // Fetch tasks for the form
-    useEffect(() => {
-      const fetchTasks = async () => {
-        setLoading(true);
-        try {
-          const response = await axios.get('/api/coconut_tasks');
-          setTasks(response.data.coconut_tasks || []);
-        } catch (err) {
-          setError(err);
-          toast.error("Failed to load tasks. Please try again later.");
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchTasks();
-    }, []);
-
-    const dateOptions = Array.from({ length: 6 }, (_, index) => ({
-      label: dayjs().add(index, 'day').format('dddd, MM/DD/YYYY'),
-      value: dayjs().add(index, 'day').format('YYYY-MM-DD'),
-    }));
-
-    const createTimeIntervals = (date) => {
-      const timeIntervals = ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'];
-      const now = dayjs();
-      const isToday = date === now.format('YYYY-MM-DD');
-      if (isToday) {
-        timeIntervals.unshift('Now');
-      }
-      return timeIntervals.map((time) => {
-        const fullTime = time === 'Now' ? now : dayjs(`${date} ${time}`, 'YYYY-MM-DD HH:mm');
-        return {
-          value: time,
-          label: time === 'Now' ? 'Now' : fullTime.format('hh:mm A'),
-          disabled: !isToday && time === 'Now',
-        };
-      });
-    };
-
-    const fetchWeatherData = async (selectedTime, selectedDate, selectedLocation) => {
-      try {
-        const isToday = selectedDate === dayjs().format('YYYY-MM-DD');
-        const isCurrentTime = selectedTime === 'Now';
-        
-        // Get coordinates for selected location
-        const coordinates = locationCoordinates[selectedLocation];
-        if (!coordinates) {
-          console.error("Invalid location selected:", selectedLocation);
-          throw new Error("Invalid location selected");
-        }
-        
-        console.log("Selected Location Coordinates:", coordinates);
-    
-        const url = !isToday || !isCurrentTime
-          ? `/api/getWeatherData?date=${selectedDate}&time=${selectedTime}&location=${selectedLocation}`
-          : `https://api.openweathermap.org/data/2.5/weather?lat=${coordinates.lat}&lon=${coordinates.lon}&appid=${apiKey}&units=metric`;
-    
-        const response = await axios.get(url);
-    
-        console.log("Weather Data Fetched:", response.data);
-    
-        if (!Array.isArray(response.data)) {
-          // If the response is an object (current weather from OpenWeatherMap)
-          return response.data;
-        }
-    
-        // If it's an array (forecast data)
-        const formattedTime = selectedTime === 'Now' 
-          ? dayjs().format('HH:00:00')
-          : dayjs(selectedTime, 'HH:mm').format('HH:00:00');
-    
-        const weatherRecord = response.data.find(record => {
-          const recordDate = dayjs(record.date).format('YYYY-MM-DD');
-          const recordTime = dayjs(record.time, 'HH:mm:ss').format('HH:00:00');
-          
-          return recordDate === selectedDate && recordTime === formattedTime && record.location === selectedLocation;
+  const getDeviceId = async () => {
+    try {
+      // Try to get the existing userId from Preferences
+      const { value: userId } = await Preferences.get({ key: 'userId' });
+      
+      if (userId) {
+        return userId;
+      } else {
+        // If no userId exists, generate a new one
+        const newUserId = getOrCreateUUID();
+        await Preferences.set({
+          key: 'userId',
+          value: newUserId,
         });
-    
-        if (!weatherRecord) {
-          // If exact time not found, find nearest available time for that date
-          const sameDay = response.data.filter(record => 
-            dayjs(record.date).format('YYYY-MM-DD') === selectedDate && record.location === selectedLocation
-          );
-    
-          if (sameDay.length === 0) {
-            throw new Error("No weather data available for the selected date");
-          }
-    
-          // Find nearest time
-          const targetTime = dayjs(`${selectedDate} ${formattedTime}`);
-          const nearest = sameDay.reduce((prev, curr) => {
-            const prevDiff = Math.abs(dayjs(`${prev.date} ${prev.time}`).diff(targetTime));
-            const currDiff = Math.abs(dayjs(`${curr.date} ${curr.time}`).diff(targetTime));
-            return currDiff < prevDiff ? curr : prev;
-          });
-    
-          return nearest;
-        }
-    
-        return weatherRecord;
+        return newUserId;
+      }
+    } catch (error) {
+      console.error('Error getting device ID:', error);
+      // Fallback to generating a new UUID if there's an error
+      return getOrCreateUUID();
+    }
+  };
+
+  // Fetch tasks for the form
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        const response = await axios.get('/api/coconut_tasks');
+        setTasks(response.data.coconut_tasks || []);
+        setLoading(false);
       } catch (error) {
-        console.error("Error fetching weather data:", error);
-        throw error;
+        toast.error("Failed to load tasks");
+        setLoading(false);
       }
     };
-    
-    
-    
+    fetchTasks();
+  }, []);
 
+  const dateOptions = Array.from({ length: 6 }, (_, index) => ({
+    label: dayjs().add(index, 'day').format('dddd, MM/DD/YYYY'),
+    value: dayjs().add(index, 'day')
+  }));
+
+  const createTimeIntervals = (date) => {
+    const timeIntervals = ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'];
+    const now = dayjs();
+    const isToday = date === now.format('YYYY-MM-DD');
+    if (isToday) {
+      timeIntervals.unshift('Now');
+    }
+    return timeIntervals.map((time) => {
+      const fullTime = time === 'Now' ? now : dayjs(`${date} ${time}`, 'YYYY-MM-DD HH:mm');
+      return {
+        value: time,
+        label: time === 'Now' ? 'Now' : fullTime.format('hh:mm A'),
+        disabled: !isToday && time === 'Now',
+      };
+    });
+  };
+
+  const fetchWeatherData = async (selectedTime, selectedDate, selectedLocation) => {
+    try {
+      const isToday = selectedDate === dayjs().format('YYYY-MM-DD');
+      const isCurrentTime = selectedTime === 'Now';
+      
+      // Get coordinates for selected location
+      const coordinates = locationCoordinates[selectedLocation];
+      if (!coordinates) {
+        console.error("Invalid location selected:", selectedLocation);
+        throw new Error("Invalid location selected");
+      }
+  
+      const url = !isToday || !isCurrentTime
+        ? `/api/getWeatherData?date=${selectedDate}&time=${selectedTime}&location=${selectedLocation}`
+        : `https://api.openweathermap.org/data/2.5/weather?lat=${coordinates.lat}&lon=${coordinates.lon}&appid=${apiKey}&units=metric`;
+    
+      const response = await axios.get(url);
+    
+      if (!Array.isArray(response.data)) {
+        return response.data;
+      }
+    
+      const formattedTime = selectedTime === 'Now' 
+        ? dayjs().format('HH:00:00')
+        : dayjs(selectedTime, 'HH:mm').format('HH:00:00');
+    
+      const weatherRecord = response.data.find(record => {
+        const recordDate = dayjs(record.date).format('YYYY-MM-DD');
+        const recordTime = dayjs(record.time, 'HH:mm:ss').format('HH:00:00');
+        
+        return recordDate === selectedDate && recordTime === formattedTime && record.location === selectedLocation;
+      });
+    
+      if (!weatherRecord) {
+        toast.error("No weather data available for the exact selected date and time.");
+        setResultMessage("Weather data is not available for the selected date and time. Please choose a different date or time.");
+        setIsFeasible(false);
+        setResultOpen(true);
+        return;
+      }
+  
+      return weatherRecord;
+    } catch (error) {
+      console.error("Error fetching weather data:", error);
+      toast.error("Failed to fetch weather data. Please try again later.");
+      setResultMessage("Failed to fetch weather data. Please try again later.");
+      setIsFeasible(false);
+      setResultOpen(true);
+    }
+  };
 
   // Normalize the weather data
   const normalizeWeatherData = (data, isApiData) => {
@@ -184,16 +190,6 @@
         };
       }
 
-      console.group('Normalized Weather Data');
-      console.log('Temperature:', normalizedData.temp, '°C');
-      console.log('Humidity:', normalizedData.humidity, '%');
-      console.log('Pressure:', normalizedData.pressure, 'hPa');
-      console.log('Wind Speed:', normalizedData.windSpeed, 'm/s');
-      console.log('Wind Gust:', normalizedData.windGust, 'm/s');
-      console.log('Cloud Cover:', normalizedData.clouds, '%');
-      console.log('Weather ID:', normalizedData.weatherId);
-      console.groupEnd();
-
       return normalizedData;
     } catch (error) {
       console.error("Error normalizing weather data:", error);
@@ -201,120 +197,132 @@
     }
   };
 
-
-
-
-
-    // Evaluate feasibility based on weather data and task requirements
-    const evaluateFeasibility = (forecast, task) => {
-      if (!forecast || !task) return false;
+  // Evaluate feasibility based on weather data and task requirements
+  const evaluateFeasibility = (forecast, task) => {
+    if (!forecast || !task) return false;
   
-      console.group('Task Requirements');
-      console.log('Task Name:', task.task);
-      console.log('Required Temperature Range:', task.requiredTemperature_min, '°C to', task.requiredTemperature_max, '°C');
-      console.log('Required Humidity Range:', task.idealHumidity_min, '% to', task.idealHumidity_max, '%');
-      console.log('Maximum Wind Speed:', task.requiredWindSpeed_max, 'm/s');
-      console.log('Maximum Wind Gust:', task.requiredWindGust_max, 'm/s');
-      console.log('Maximum Cloud Cover:', task.requiredCloudCover_max, '%');
-      console.log('Required Pressure Range:', task.requiredPressure_min, 'hPa to', task.requiredPressure_max, 'hPa');
-      console.log('Restricted Weather IDs:', JSON.parse(task.weatherRestrictions || "[]"));
-      console.groupEnd();
+    console.group('Task Requirements');
+    console.log('Task Name:', task.task);
+    console.log('Required Temperature Range:', task.requiredTemperature_min, '°C to', task.requiredTemperature_max, '°C');
+    console.log('Required Humidity Range:', task.idealHumidity_min, '% to', task.idealHumidity_max, '%');
+    console.log('Maximum Wind Speed:', task.requiredWindSpeed_max, 'm/s');
+    console.log('Maximum Wind Gust:', task.requiredWindGust_max, 'm/s');
+    console.log('Maximum Cloud Cover:', task.requiredCloudCover_max, '%');
+    console.log('Required Pressure Range:', task.requiredPressure_min, 'hPa to', task.requiredPressure_max, 'hPa');
+    console.log('Restricted Weather IDs:', JSON.parse(task.weatherRestrictions || "[]"));
   
-      const { temp, humidity, pressure, windSpeed, windGust, clouds, weatherId } = forecast;
-      const weatherRestrictions = JSON.parse(task.weatherRestrictions || "[]");
+    const { temp, humidity, pressure, windSpeed, windGust, clouds, weatherId } = forecast;
+    const weatherRestrictions = JSON.parse(task.weatherRestrictions || "[]");
   
-      const conditions = {
-        tempConditionMatches:
-          temp !== null && temp >= task.requiredTemperature_min && temp <= task.requiredTemperature_max,
-        humidityConditionMatches:
-          humidity !== null && humidity >= task.idealHumidity_min && humidity <= task.idealHumidity_max,
-        weatherConditionMatches:
-          weatherRestrictions.length === 0 || (weatherId !== null && weatherRestrictions.includes(weatherId)),
-        windSpeedMatches: windSpeed !== null && windSpeed <= task.requiredWindSpeed_max,
-        windGustMatches: windGust <= task.requiredWindGust_max,
-        cloudCoverMatches: clouds !== null && clouds <= task.requiredCloudCover_max,
-        pressureMatches:
-          pressure !== null && pressure >= task.requiredPressure_min && pressure <= task.requiredPressure_max,
-      };
-  
-      console.group('Feasibility Check Results');
-      console.log('Temperature Check:', conditions.tempConditionMatches);
-      console.log('Humidity Check:', conditions.humidityConditionMatches);
-      console.log('Weather ID Check:', conditions.weatherConditionMatches);
-      console.log('Wind Speed Check:', conditions.windSpeedMatches);
-      console.log('Wind Gust Check:', conditions.windGustMatches);
-      console.log('Cloud Cover Check:', conditions.cloudCoverMatches);
-      console.log('Pressure Check:', conditions.pressureMatches);
-      console.groupEnd();
-  
-      return Object.values(conditions).every(Boolean);
+    const conditions = {
+      tempConditionMatches:
+        temp !== null && temp >= task.requiredTemperature_min && temp <= task.requiredTemperature_max,
+      humidityConditionMatches:
+        humidity !== null && humidity >= task.idealHumidity_min && humidity <= task.idealHumidity_max,
+      weatherConditionMatches:
+        weatherRestrictions.length === 0 || (weatherId !== null && weatherRestrictions.includes(weatherId)),
+      windSpeedMatches: windSpeed !== null && windSpeed <= task.requiredWindSpeed_max,
+      windGustMatches: windGust <= task.requiredWindGust_max,
+      cloudCoverMatches: clouds !== null && clouds <= task.requiredCloudCover_max,
+      pressureMatches:
+        pressure !== null && pressure >= task.requiredPressure_min && pressure <= task.requiredPressure_max,
     };
   
-    
+    return Object.values(conditions).every(Boolean);
+  };
 
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-
-      // New validation: Check if selected date is future and time is 'Now'
-      if (dayjs(selectedDate).isAfter(dayjs(), 'day') && selectedTime === 'Now') {
-        toast.error("You cannot select 'Now' for a future date. Please choose a specific time.");
-        return;
-      }      
+  const handleSubmit = async (e) => {
+    e.preventDefault();
   
-      if (!selectedTask || !selectedLocation || !selectedTime) {
-        toast.error("Please fill all fields before submitting.");
-        return;
-      }
-
-
+    const deviceId = await getDeviceId();
   
-      console.group('Submit Details');
-      console.log('Selected Task:', selectedTask);
-      console.log('Selected Location:', selectedLocation);
-      console.log('Selected Date:', selectedDate);
-      console.log('Selected Time:', selectedTime);
-      console.groupEnd();
+    if (dayjs(selectedDate).isAfter(dayjs(), 'day') && selectedTime === 'Now') {
+      toast.error("You cannot select 'Now' for a future date. Please choose a specific time.");
+      return;
+    }
   
-      const isApiData = selectedDate === dayjs().format('YYYY-MM-DD') && selectedTime === 'Now';
+    if (!selectedTask || !selectedLocation || !selectedTime) {
+      toast.error("Please fill all fields before submitting.");
+      return;
+    }
   
-      try {
-        const forecast = await fetchWeatherData(selectedTime, selectedDate, selectedLocation);
-        console.log('Raw Weather Data:', forecast);
-        
-        const normalizedForecast = normalizeWeatherData(forecast, isApiData);
-        if (!normalizedForecast) {
-          setResultMessage("Unable to process weather data for the selected date and time.");
-          setIsFeasible(false);
-          setResultOpen(true);
-          return;
-        }
+    const isApiData = selectedDate === dayjs().format('YYYY-MM-DD') && selectedTime === 'Now';
   
-        const task = tasks.find((t) => t.task === selectedTask);
-        if (!task) {
-          setResultMessage("Selected task does not have valid weather requirements.");
-          setIsFeasible(false);
-          setResultOpen(true);
-          return;
-        }
-  
-        const isFeasible = evaluateFeasibility(normalizedForecast, task);
-        setIsFeasible(isFeasible);
-        setResultMessage(
-          isFeasible
-            ? "The selected task is feasible!"
-            : "The selected task is not recommended based on the forecasted weather conditions."
-        );
+    try {
+      const forecast = await fetchWeatherData(selectedTime, selectedDate, selectedLocation);
+      console.log('Selected Weather Data:', forecast); // Log the raw weather data
+      if (!forecast) {
+        toast.error("No weather data available for the exact selected date and time.");
+        setResultMessage("Weather data is not available for the selected date and time. Please choose a different date or time.");
+        setIsFeasible(false);
         setResultOpen(true);
-      } catch (error) {
-        console.error("Error:", error);
-        toast.error(error.message || "Could not fetch weather data. Please try again.");
+        return;
       }
-    };
+  
+      const normalizedForecast = normalizeWeatherData(forecast, isApiData);
+      if (!normalizedForecast) {
+        toast.error("Unable to process weather data for the selected date and time.");
+        setResultMessage("Unable to process weather data. Please try again.");
+        setIsFeasible(false);
+        setResultOpen(true);
+        return;
+      }
+  
+      const task = tasks.find((t) => t.task_name === selectedTask);
+      console.log('Selected Task Data:', task); 
+      if (!task) {
+        toast.error("Selected task does not have valid weather requirements.");
+        setResultMessage("Selected task does not have valid weather requirements.");
+        setIsFeasible(false);
+        setResultOpen(true);
+        return;
+      }
+  
+      const isFeasible = evaluateFeasibility(normalizedForecast, task);
+      setIsFeasible(isFeasible);
+      setResultMessage(
+        isFeasible
+          ? "The selected task is feasible!"
+          : "The selected task is not recommended based on the forecasted weather conditions."
+      );
+      setResultOpen(true);
+  
+      // Insert result into database
+      await storeResultInDatabase(deviceId, task.task_id, selectedLocation, selectedDate, selectedTime, isFeasible, resultMessage);
+  
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Could not fetch weather data for the selected date and time.");
+      setResultMessage("Weather data is not available for the selected date and time. Please choose a different date or time.");
+      setIsFeasible(false);
+      setResultOpen(true);
+    }
+  };
+  
+  const storeResultInDatabase = async (deviceId, taskId, location, date, time, isFeasible) => {
+    try {
+      const response = await axios.post('/api/storeNotifResult', {
+        deviceId,
+        taskId,
+        location,
+        date,
+        time,
+        isFeasible,
+        // Remove resultMessage here
+      });
+      if (response.status === 200) {
+        toast.success('Task result saved successfully!');
+      } else {
+        toast.error('Failed to save task result');
+      }
+    } catch (error) {
+      console.error('Error storing task result:', error);
+      toast.error('Failed to save task result');
+    }
+  };
+  
+  
     
-
-
-
-
 
     return (
       <Dialog 
@@ -375,7 +383,7 @@
           <Grid item xs={12}>
             <FormControl fullWidth>
               <Autocomplete
-                options={tasks.map((task) => task.task)}
+                options={tasks.map((task) => task.task_name)}
                 renderInput={(params) => 
                   <TextField {...params} label="Select Task" size="medium" />
                 }
@@ -412,7 +420,7 @@
                     const date = dayjs().add(index, 'day');
                     return (
                       <MenuItem key={date.format('YYYY-MM-DD')} value={date.format('YYYY-MM-DD')}>
-                        {date.format('ddd, MM/DD')}
+                        {date.format('dddd, MMMM D, YYYY')}
                       </MenuItem>
                     );
                   })}

@@ -1,8 +1,13 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
-import { Grid, Typography, Paper, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Button } from '@mui/material';
+import { Grid, Typography, Paper, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, ButtonBox,IconButton, Box } from '@mui/material';
 import { useRouter } from 'next/router';
 import { Preferences } from '@capacitor/preferences';
 import dayjs from 'dayjs';
+import CloseIcon from '@mui/icons-material/Close';
+import MapIcon from '@mui/icons-material/Map';
+import EventIcon from '@mui/icons-material/Event';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
 // Helper function to extract weather data from different formats
 const extractWeatherData = (data) => {
@@ -41,7 +46,7 @@ const extractWeatherData = (data) => {
 const evaluateTask = (task, weather) => {
   console.log('Using weather data:', weather);
 
-  console.log(`Required data for task "${task.task}":`, {
+  console.log(`Required data for task "${task.task_name}":`, {
     requiredTemperature_min: task.requiredTemperature_min,
     requiredTemperature_max: task.requiredTemperature_max,
     idealHumidity_min: task.idealHumidity_min,
@@ -93,7 +98,7 @@ const evaluateTask = (task, weather) => {
   if (!weatherRestrictionCheck) isRecommended = false;
 
   // Log the overall recommendation
-  console.log(`Task "${task.task}" is ${isRecommended ? 'Recommended' : 'Not Recommended'}`);
+  console.log(`Task "${task.task_name}" is ${isRecommended ? 'Recommended' : 'Not Recommended'}`);
 
   return isRecommended;
 };
@@ -220,7 +225,7 @@ const RecommendedTask = ({ weatherData, currentWeatherData, useCurrentWeather, l
     }
 
     router.push({
-      pathname: '/dashboard/dashboardcomp/AllRecommendedTasksPage',
+      pathname: '/dashboard/dashboardcomp/AllRecommended/AllRecommendedTasksPage',
       query: queryParams,
     });
   };
@@ -310,19 +315,23 @@ const RecommendedTask = ({ weatherData, currentWeatherData, useCurrentWeather, l
         <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
           Recommended Tasks
         </Typography>
-        <Typography
-          variant="body1"
-          onClick={handleSeeMore}
-          sx={{
-            fontWeight: 'bold',
-            cursor: 'pointer',
-            textDecoration: 'underline',
-          }}
-        >
-          See all
-        </Typography>
+  
+        {/* Conditionally render the 'See All' link only if there are recommended tasks */}
+        {recommendedTasks.length > 0 && (
+          <Typography
+            variant="body1"
+            onClick={handleSeeMore}
+            sx={{
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              textDecoration: 'underline',
+            }}
+          >
+            See all
+          </Typography>
+        )}
       </Grid>
-
+  
       {location && (
         <Typography variant="body2" sx={{ mb: 2 }}>
           {useCurrentWeather
@@ -330,7 +339,7 @@ const RecommendedTask = ({ weatherData, currentWeatherData, useCurrentWeather, l
             : `Recommendations for ${location} on ${selectedDate}`}
         </Typography>
       )}
-
+  
       <Grid container>
         {recommendedTasks.length > 0 ? (
           recommendedTasks.slice(0, 3).map((task, index) => (
@@ -349,7 +358,7 @@ const RecommendedTask = ({ weatherData, currentWeatherData, useCurrentWeather, l
                 }}
                 onClick={() => handleTaskClick(task)}
               >
-                <Typography variant="body1">{task.task}</Typography>
+                <Typography variant="body1">{task.task_name || task.task}</Typography>
               </Paper>
             </Grid>
           ))
@@ -362,36 +371,97 @@ const RecommendedTask = ({ weatherData, currentWeatherData, useCurrentWeather, l
         )}
       </Grid>
 
-      {/* Modal for task details */}
-      <Dialog open={!!selectedTask} onClose={handleCloseModal}>
-        <DialogTitle>Task Details</DialogTitle>
-        <DialogContent>
-          {selectedTask && (
-            <>
-              <Typography variant="h6">{selectedTask.task}</Typography>
-              <Typography variant="body2">
-                Location: {selectedTask.storedLocation || location}
+
+
+      <Dialog 
+        open={!!selectedTask} onClose={handleCloseModal}
+        maxWidth="sm"
+        fullWidth
+        sx={{
+          '& .MuiDialog-paper': {
+            borderRadius: 4,
+            background: 'transparent',
+            boxShadow: 'none'
+          }
+        }}
+      >
+      {selectedTask && (
+      <Paper 
+        elevation={6} 
+        sx={{
+          borderRadius: 4,
+          overflow: 'hidden',
+          background: 'linear-gradient(145deg, #E6F3E6 0%, #C5E1C5 100%)',
+        }}
+      >
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            p: 2,
+            background: 'linear-gradient(90deg, #2E8B57 0%, #3CB371 100%)',
+            color: 'white'
+          }}
+        >
+          <Typography variant="h6" fontWeight={600}>
+          {selectedTask.task_name}
+          </Typography>
+          <IconButton onClick={handleCloseModal} sx={{ color: 'white' }}>
+            <CloseIcon />
+          </IconButton>
+        </Box>
+        
+        <DialogContent sx={{ px: 3, py: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <MapIcon sx={{ color: '#2E8B57' }} />
+              <Typography variant="body1" color="text.secondary">
+              {selectedTask.storedLocation || location}
               </Typography>
-              <Typography variant="body2">
-                Date: {selectedTask.storedDate || selectedDate}
+            </Box>
+            
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <EventIcon sx={{ color: '#2E8B57' }} />
+              <Typography variant="body1" color="text.secondary">
+              {selectedTask.storedDate || selectedDate}
               </Typography>
-              <Typography variant="body2">
-                Time: {dayjs(selectedTask.storedTime || selectedTime, 'HH:mm').format('h:mm A')}
+            </Box>
+            
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <AccessTimeIcon sx={{ color: '#2E8B57' }} />
+              <Typography variant="body1" color="text.secondary">
+              {dayjs(selectedTask.storedTime || selectedTime, 'HH:mm').format('h:mm A')}
               </Typography>
-              <Typography variant="body1" sx={{ mt: 2 }}>
-                {selectedTask.details}
-              </Typography>
-            </>
-          )}
+            </Box>
+          </Box>
+          
+          <Box mt={3}>
+            <Typography 
+              variant="body1" 
+              sx={{ 
+                color: 'text.primary',
+                background: 'rgba(255,255,255,0.7)',
+                borderRadius: 2,
+                p: 2,
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+              }}
+            >
+              {selectedTask.details}
+            </Typography>
+          </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseModal} color="primary">
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
+      </Paper>
+       )}
+    </Dialog>
+
+
+
+
+
     </Grid>
   );
+  
 };
 
 export default RecommendedTask;

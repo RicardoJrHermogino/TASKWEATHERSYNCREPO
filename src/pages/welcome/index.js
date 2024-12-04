@@ -3,35 +3,13 @@
   import Image from "next/image";
   import { Container, Typography, Button, CssBaseline, Box, Stack } from '@mui/material';
   import { motion } from 'framer-motion';
-  import getOrCreateUUID from '../../utils/uuid';
-  import { Preferences } from '@capacitor/preferences';
+
 
 
   const WelcomeDashboard = () => {
     const [isExiting, setIsExiting] = useState(false);
 
     const router = useRouter();
-
-    useEffect(() => {
-      const checkUserStatus = async () => {
-        // Try to retrieve the userId from Preferences
-        const { value: userId } = await Preferences.get({ key: 'userId' });
-  
-        if (userId) {
-          // If userId exists, redirect to the dashboard
-          router.push('/dashboard');
-        } else {
-          // If userId does not exist, generate and save a new one
-          const newUserId = getOrCreateUUID();
-          await Preferences.set({
-            key: 'userId',
-            value: newUserId,
-          });
-        }
-      };
-  
-      checkUserStatus();
-    }, [router]);
 
 
     const handleGetStartedClick = () => {

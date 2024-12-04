@@ -1,11 +1,19 @@
-import { FormControl, InputLabel, Select, MenuItem, Grid, OutlinedInput, InputAdornment } from "@mui/material";
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday'; // Import the calendar icon
+import {
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Grid,
+  OutlinedInput,
+  InputAdornment,
+} from "@mui/material";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday"; // Import the calendar icon
 import dayjs from "dayjs";
 
 const DatePicker = ({ selectedDate, setSelectedDate, MenuProps }) => {
   // Generate an array of the next 6 days (including today)
   const nextSixDays = Array.from({ length: 6 }, (_, i) =>
-    dayjs().add(i, 'day').format("YYYY-MM-DD")
+    dayjs().add(i, "day").format("YYYY-MM-DD")
   );
 
   return (
@@ -31,37 +39,35 @@ const DatePicker = ({ selectedDate, setSelectedDate, MenuProps }) => {
           MenuProps={{
             PaperProps: {
               style: {
-                maxHeight: '300px', // Set max height for dropdown
-                overflowY: 'auto', // Enable vertical scrolling
+                maxHeight: "500px", // Increased max height for dropdown
+                overflowY: "auto", // Enable vertical scrolling
               },
             },
             anchorOrigin: {
-              vertical: 'bottom', // Anchor the dropdown to the bottom of the select input
-              horizontal: 'left', // Align to the left
+              vertical: "top", // Anchor the dropdown to the top of the select input
+              horizontal: "left", // Align to the left
             },
             transformOrigin: {
-              vertical: 'top', // Open the dropdown from the top
-              horizontal: 'left', // Align to the left
+              vertical: "bottom", // Open the dropdown from the bottom
+              horizontal: "left", // Align to the left
             },
             ...MenuProps, // Spread additional MenuProps if passed
           }}
           sx={{
-            borderRadius: '10px', // Ensures the outline is rounded
-            '& .MuiOutlinedInput-root': {
-              borderRadius: '10px', // Rounds the input itself
+            borderRadius: "10px", // Ensures the outline is rounded
+            "& .MuiOutlinedInput-root": {
+              borderRadius: "10px", // Rounds the input itself
             },
-            '& fieldset': {
-              borderRadius: '10px', // Rounds the border for the dropdown
+            "& fieldset": {
+              borderRadius: "10px", // Rounds the border for the dropdown
             },
-            backgroundColor: '#f5f7fa',
+            backgroundColor: "#f5f7fa",
           }}
         >
-          <MenuItem value="" disabled>
-            <em>Select a date</em> {/* Placeholder text */}
-          </MenuItem>
+
           {nextSixDays.map((date) => (
             <MenuItem key={date} value={date}>
-              {dayjs(date).format('MMMM D, YYYY')} {/* Display only the date */}
+              {dayjs(date).format("MMMM D, YYYY")} {/* Display only the date */}
             </MenuItem>
           ))}
         </Select>

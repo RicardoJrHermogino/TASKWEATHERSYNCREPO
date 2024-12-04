@@ -3,8 +3,6 @@ import { Container, Typography, Button, CssBaseline, Box, Stack } from '@mui/mat
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from "next/image";
 import { useRouter } from 'next/router';
-import getOrCreateUUID from '../../utils/uuid';
-import { Preferences } from '@capacitor/preferences';
 
 const WelcomeGreetings = () => {
   const [isClient, setIsClient] = useState(false);
@@ -23,26 +21,6 @@ const WelcomeGreetings = () => {
     }, 250);
   };
 
-      useEffect(() => {
-      const checkUserStatus = async () => {
-        // Try to retrieve the userId from Preferences
-        const { value: userId } = await Preferences.get({ key: 'userId' });
-  
-        if (userId) {
-          // If userId exists, redirect to the dashboard
-          router.push('/dashboard');
-        } else {
-          // If userId does not exist, generate and save a new one
-          const newUserId = getOrCreateUUID();
-          await Preferences.set({
-            key: 'userId',
-            value: newUserId,
-          });
-        }
-      };
-  
-      checkUserStatus();
-    }, [router]);
 
   return (
     <>

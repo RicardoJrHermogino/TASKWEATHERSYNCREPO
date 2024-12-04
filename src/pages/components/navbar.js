@@ -43,24 +43,39 @@ const FloatingButton = styled(Button)`
 `;
 
 const ActiveButton = styled(Button)`
-  background-color: white; /* Super light gray color for active button */
-  color: black; /* Text color for active button */
-  border-radius: 50%; /* Make it circular */
-  width: 64px; /* Set the width to make it bigger */
-  height: 64px; /* Set the height to make it bigger */
+  color: #48ccb4; /* Change the icon color to #48ccb4 for active state */
   display: flex; /* Center the icon */
   align-items: center; /* Center the icon vertically */
   justify-content: center; /* Center the icon horizontally */
+  width: 64px; /* Set the width */
+  height: 64px; /* Set the height */
+  border-radius: 50%; /* Make it circular */
+
+  &:hover {
+    background-color: transparent; /* Remove any background color on hover */
+  }
+
+  & svg {
+    color: #48ccb4; /* Icon color for active state */
+  }
 `;
 
 const InactiveButton = styled(Button)`
-  color: inherit; /* Inherit color */
+  color: black;
   display: flex; /* Center the icon */
   align-items: center; /* Center the icon vertically */
   justify-content: center; /* Center the icon horizontally */
-  width: 64px; /* Set the width for inactive button */
-  height: 64px; /* Set the height for inactive button */
+  width: 64px; /* Set the width */
+  height: 64px; /* Set the height */
   border-radius: 50%; /* Make it circular */
+
+  &:hover {
+    background-color: #f0f4ff; /* Slight background color on hover */
+  }
+
+  & svg {
+    color: inherit; /* Default icon color */
+  }
 `;
 
 export default function Navbar() {
@@ -77,11 +92,11 @@ export default function Navbar() {
             <StyledLink href="/dashboard" passHref>
               {router.pathname === '/dashboard' ? (
                 <ActiveButton sx={{ mx: 1, ml: 1 }}> {/* Adjusted margins for Home button */}
-                  <HomeRoundedIcon fontSize="medium" sx={{ color: 'black' }} />
+                  <HomeRoundedIcon fontSize="large" />
                 </ActiveButton>
               ) : (
                 <InactiveButton sx={{ mx: 1, ml: 1 }}> {/* Adjusted margins for Home button */}
-                  <HomeRoundedIcon fontSize="medium" sx={{ color: 'black' }} />
+                  <HomeRoundedIcon fontSize="medium" />
                 </InactiveButton>
               )}
             </StyledLink>
@@ -90,11 +105,11 @@ export default function Navbar() {
             <StyledLink href="/forecast" passHref>
               {router.pathname === '/forecast' ? (
                 <ActiveButton sx={{ mx: 1 }}> {/* Adjusted margins for Weather button */}
-                  <ThunderstormRoundedIcon fontSize="medium" sx={{ color: 'black' }} />
+                  <ThunderstormRoundedIcon fontSize="large" />
                 </ActiveButton>
               ) : (
                 <InactiveButton sx={{ mx: 1 }}> {/* Adjusted margins for Weather button */}
-                  <ThunderstormRoundedIcon fontSize="medium" sx={{ color: 'black' }} />
+                  <ThunderstormRoundedIcon fontSize="medium" />
                 </InactiveButton>
               )}
             </StyledLink>
