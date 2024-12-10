@@ -173,7 +173,7 @@ const Dashboard = () => {
   const handleSubmit = () => {
     // Ensure all required fields are filled and the user has interacted with the time picker
     if (!location || !selectedDate || !selectedTime || !hasInteractedWithTime) {
-      showErrorToast("Please complete all inputs, including selecting a time.");
+      showErrorToast("Please complete all inputs.");
       return;
     }
   
@@ -192,28 +192,30 @@ const Dashboard = () => {
   
 
 
-  // Handle fetching of current weather when location is selected
   const handleFetchCurrentWeather = () => {
     if (!location) {
       showErrorToast("Please select a location.");
       return;
     }
   
+    // Reset date and time fields
+    setSelectedDate(null);
+    setSelectedTime(null);
+    setHasInteractedWithTime(false);
+  
     setGlobalLocation(location);
     setSubmittedLocation(location);
     setSubmittedDate(dayjs().format('YYYY-MM-DD'));
-    setSubmittedTime(dayjs().format('HH:mm')); // Automatically sets time to current, but this should be allowed.
+  
+    // Automatically set the time to the current hour (e.g., 10:00, not 10:20)
+    setSubmittedTime(dayjs().startOf('hour').format('HH:mm'));
   
     const { lat, lon } = locationCoordinates[location];
     fetchCurrentWeatherData(lat, lon);
   
-    // Set the time interaction flag if it's the user's first time interacting
-    if (!hasInteractedWithTime) {
-      setHasInteractedWithTime(false); // Reset to false, since we're still handling this as automatic
-    }
-  
     setDrawerOpen(false);
   };
+  
   
 
   // Notifications for demonstration
@@ -237,8 +239,8 @@ const Dashboard = () => {
         // Find the last forecasted date
         const lastDate = forecastData[forecastData.length - 1]?.date;
         const timesForLastDate = forecastData
-          .filter((item) => item.date === lastDate)
-          .map((item) => item.time);
+              .filter((item) => item.date === lastDate)
+              .map((item) => dayjs(item.time, 'HH:mm:ss').format('HH:00'));  // Convert to HH:00 format
   
         setAvailableForecastTimes(timesForLastDate); // Set the available times for the last date
       } catch (error) {

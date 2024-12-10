@@ -26,6 +26,7 @@ import { locationCoordinates } from '@/utils/locationCoordinates';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { Preferences } from '@capacitor/preferences';
+import TaskFeasibilityResultDialog from './TaskFeasibilityResultDialog'
 
 // Custom Paper component for dropdown
 const CustomPaper = (props) => (
@@ -95,7 +96,7 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
   }));
 
   const createTimeIntervals = (date) => {
-    const timeIntervals = ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'];
+    const timeIntervals = ['03:00', '06:00', '09:00', '12:00', '15:00', '18:00'];
     const now = dayjs();
     const isToday = date === now.format('YYYY-MM-DD');
     if (isToday) {
@@ -250,7 +251,6 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
   
     try {
       const forecast = await fetchWeatherData(selectedTime, selectedDate, selectedLocation);
-      console.log('Selected Weather Data:', forecast); // Log the raw weather data
       if (!forecast) {
         toast.error("No weather data available for the exact selected date and time.");
         setResultMessage("Weather data is not available for the selected date and time. Please choose a different date or time.");
@@ -269,7 +269,6 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
       }
   
       const task = tasks.find((t) => t.task_name === selectedTask);
-      console.log('Selected Task Data:', task); 
       if (!task) {
         toast.error("Selected task does not have valid weather requirements.");
         setResultMessage("Selected task does not have valid weather requirements.");
@@ -282,13 +281,10 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
       setIsFeasible(isFeasible);
       setResultMessage(
         isFeasible
-          ? "The selected task is feasible!"
+          ? "The selected task is recommended based on the forecasted weather conditions!"
           : "The selected task is not recommended based on the forecasted weather conditions."
       );
       setResultOpen(true);
-  
-      // Insert result into database
-      await storeResultInDatabase(deviceId, task.task_id, selectedLocation, selectedDate, selectedTime, isFeasible, resultMessage);
   
     } catch (error) {
       console.error("Error:", error);
@@ -299,30 +295,7 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
     }
   };
   
-  const storeResultInDatabase = async (deviceId, taskId, location, date, time, isFeasible) => {
-    try {
-      const response = await axios.post('/api/storeNotifResult', {
-        deviceId,
-        taskId,
-        location,
-        date,
-        time,
-        isFeasible,
-        // Remove resultMessage here
-      });
-      if (response.status === 200) {
-        toast.success('Task result saved successfully!');
-      } else {
-        toast.error('Failed to save task result');
-      }
-    } catch (error) {
-      console.error('Error storing task result:', error);
-      toast.error('Failed to save task result');
-    }
-  };
   
-  
-    
 
     return (
       <Dialog 
@@ -491,43 +464,16 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
       )}
 
   {/* Result Dialog */}
-  <Dialog open={resultOpen} onClose={() => setResultOpen(false)}>
-          <DialogTitle>
-            <Box display="flex" alignItems="center" gap={1}>
-              {isFeasible ? (
-                <CheckCircleIcon color="success" />
-              ) : (
-                <CancelIcon color="error" />
-              )}
-              Task Feasibility Result
-            </Box>
-          </DialogTitle>
-
-          <DialogContent>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Typography variant="h6">Task: {selectedTask}</Typography>
-              <Typography variant="body1">Location: {selectedLocation}</Typography>
-              <Typography variant="body1">Date: {dayjs(selectedDate).format('dddd, MM/DD/YYYY')}</Typography>
-              <Typography variant="body1">Time: {selectedTime}</Typography>
-              <Box
-                sx={{
-                  mt: 2,
-                  p: 2,
-                  borderRadius: '10px',
-                  bgcolor: isFeasible ? '#d4edda' : '#f8d7da',
-                  color: isFeasible ? '#155724' : '#721c24',
-                  border: isFeasible ? '1px solid #c3e6cb' : '1px solid #f5c6cb',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                }}
-              >
-                {isFeasible ? <CheckCircleIcon color="success" /> : <CancelIcon color="error" />}
-                <Typography>{resultMessage}</Typography>
-              </Box>
-            </Box>
-          </DialogContent>
-        </Dialog>
+  <TaskFeasibilityResultDialog
+        open={resultOpen}
+        onClose={() => setResultOpen(false)}
+        isFeasible={isFeasible}
+        selectedTask={selectedTask}
+        selectedLocation={selectedLocation}
+        selectedDate={selectedDate}
+        selectedTime={selectedTime}
+        resultMessage={resultMessage}
+      />
     </DialogContent>
   </Dialog>
 

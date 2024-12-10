@@ -54,60 +54,80 @@ export const PollingProvider = ({ children }) => {
   // Function to check and trigger fetching weather data
   const fetchWeatherData = async () => {
     const now = Date.now();
-
+  
     // Check if we've exceeded the fetch limit
     setFetchData(prev => {
       let newCount = prev.count;
       let newFirstFetchTime = prev.firstFetchTime;
-
+  
       // If no previous fetch time, set it now
       if (!newFirstFetchTime) {
         newFirstFetchTime = now;
       }
-
-      // If more than 1 minute has passed since first fetch, reset
+  
+      // If more than 1 minute has passed since the first fetch, reset
       if (now - newFirstFetchTime > 60000) {
         newCount = 0;
         newFirstFetchTime = now;
       }
-
+  
       // Only increment if we haven't reached 10 fetches
       if (newCount < 5) {
         newCount++;
-
+  
         // Attempt to fetch weather data
         fetch('/api/fetchWeatherData', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
         })
-        .then(response => {
-          if (!response.ok) {
-            throw new Error('Failed to fetch weather data');
-          }
-          console.log('Weather data fetched');
-        })
-        .catch(error => {
-          console.error('Error fetching weather data:', error);
-        });
+          .then(response => {
+            if (!response.ok) {
+              console.error('Failed to fetch weather data: ', response.status);
+              // Optionally, show a user-friendly toast if the fetch fails
+              toast.error('Failed to fetch weather data. Please try again later.', {
+                duration: 4000,
+                style: {
+                  borderRadius: '30px',
+                  fontSize: '16px',
+                  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                },
+              });
+              return; // Exit early if response is not OK
+            }
+            console.log('Weather data fetched');
+          })
+          .catch(error => {
+            console.error('Error fetching weather data:', error);
+            // Optionally show a generic error message to the user
+            toast.error('An error occurred while fetching weather data.', {
+              duration: 4000,
+              style: {
+                borderRadius: '30px',
+                fontSize: '16px',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+              },
+            });
+          });
       } else {
         console.log('Fetch limit reached. No more fetches allowed within 1 minute.');
         showFetchLimitToast(); // Show toast when fetch limit is reached
       }
-
+  
       // Update localStorage
       if (typeof window !== 'undefined') {
         localStorage.setItem('weatherFetchData', JSON.stringify({
           count: newCount,
-          firstFetchTime: newFirstFetchTime
+          firstFetchTime: newFirstFetchTime,
         }));
       }
-
+  
       return {
         count: newCount,
-        firstFetchTime: newFirstFetchTime
+        firstFetchTime: newFirstFetchTime,
       };
     });
   };
+  
 
   // Initial fetch and polling setup
   useEffect(() => {

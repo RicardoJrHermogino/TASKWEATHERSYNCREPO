@@ -8,7 +8,7 @@ const dbConfig = {
   database: process.env.DB_NAME,
 };
 
-export default async function handler(req, res) {
+export default async function getWeatherDataHandler(req, res) {
   let connection;
   try {
     connection = await mysql.createConnection(dbConfig);

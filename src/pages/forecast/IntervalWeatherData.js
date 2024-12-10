@@ -61,16 +61,16 @@ export default function HourlyForecastDetails() {
 
         {/* Hourly Forecast List */}
         {hourlyData.map((hourlyForecast, index) => {
-          const weatherCondition = mapWeatherCondition(hourlyForecast.weather_id, date, false); // Assuming it's not the current weather
-          const formattedTime = dayjs(hourlyForecast.time, 'HH:mm:ss').format('h:mm A');
+          const weatherCondition = mapWeatherCondition(hourlyForecast.weather_id, date, false);
           
-          // Console log each hourly forecast data here
-          console.log('Hourly Forecast Data:', hourlyForecast);
-          console.log('Time:', hourlyForecast.time);
-          console.log('Weather ID:', hourlyForecast.weather_id);
-          console.log('Temperature:', hourlyForecast.temperature);
-          console.log('Formatted Time:', formattedTime);
-
+          // Modify time parsing to handle potential formats
+          const formattedTime = hourlyForecast.time 
+            ? dayjs(
+                `${date} ${hourlyForecast.time}`, 
+                'YYYY-MM-DD HH:mm:ss'
+              ).format('h:mm A')
+            : 'N/A';
+          
           return (
             <Grid item xs={6} key={index}>
               <Paper 

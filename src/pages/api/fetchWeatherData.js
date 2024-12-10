@@ -10,7 +10,7 @@ const dbConfig = {
   database: process.env.DB_NAME,
 };
 
-export default async function handler(req, res) {
+export default async function fetchWeatherDataHandler(req, res) {
   if (req.method === 'POST') {
     try {
       const weatherAPI = new WeatherAPI(API_KEY);

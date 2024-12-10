@@ -50,7 +50,7 @@ const WeatherIcon = ({ weatherId }) => {
 
 const AllRecommendedTasksPage = () => {
   const router = useRouter();
-  const { location, selectedDate, useCurrentWeather, weatherData } = router.query;
+  const { location, selectedDate, useCurrentWeather, weatherData, selectedTime } = router.query;
 
   const [fetchedTasks, setFetchedTasks] = useState([]);
   const [recommendedTasksByInterval, setRecommendedTasksByInterval] = useState([]);
@@ -212,30 +212,34 @@ const AllRecommendedTasksPage = () => {
         const { parsedLocation } = validateLocation();
   
         // Handle current weather
-        if (useCurrentWeather === 'true' && weatherData) {
-          const parsedWeatherData = JSON.parse(weatherData);
-          const validatedCurrentWeather = validateWeatherData(parsedWeatherData);
-  
-          if (validatedCurrentWeather) {
-            console.log('Using weather data:', validatedCurrentWeather); // Add this line
-  
-            const recommendedTasks = getRecommendedTasks(validatedCurrentWeather, fetchedTasks);
-            const currentTime = formatTime(new Date());
-  
-            setRecommendedTasksByInterval([{
-              time: currentTime,
-              tasks: recommendedTasks,
-              weather: validatedCurrentWeather
-            }]);
-  
-            // Cache the recommendations
-            localStorage.setItem('lastRecommendedTasks', JSON.stringify([{
-              time: currentTime,
-              tasks: recommendedTasks,
-              weather: validatedCurrentWeather
-            }]));
+          if (useCurrentWeather === 'true' && weatherData) {
+            const parsedWeatherData = JSON.parse(weatherData);
+            const validatedCurrentWeather = validateWeatherData(parsedWeatherData);
+
+            if (validatedCurrentWeather) {
+              console.log('Using weather data:', validatedCurrentWeather);
+
+              const recommendedTasks = getRecommendedTasks(validatedCurrentWeather, fetchedTasks);
+              
+              // Use selectedTime instead of current time when current weather is used
+              const displayTime = selectedTime 
+                ? formatTime(new Date(`2000-01-01T${selectedTime}`)) 
+                : formatTime(new Date());
+
+              setRecommendedTasksByInterval([{
+                time: displayTime,
+                tasks: recommendedTasks,
+                weather: validatedCurrentWeather
+              }]);
+
+              // Cache the recommendations
+              localStorage.setItem('lastRecommendedTasks', JSON.stringify([{
+                time: displayTime,
+                tasks: recommendedTasks,
+                weather: validatedCurrentWeather
+              }]));
+            }
           }
-        } 
         // Handle forecasted weather
         else if (selectedDate) {
           const response = await fetch(

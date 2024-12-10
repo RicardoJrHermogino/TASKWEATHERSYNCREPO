@@ -1,10 +1,9 @@
-// pages/api/tasks.js
-import TaskService from "@/lib/TaskService";
+import Tasks from "@/lib/Tasks";
 
-export default async function handler(req, res) {
+export default async function coconutHandler(req, res) {
   if (req.method === 'GET') {
     try {
-      const tasks = await TaskService.getAllTasks();
+      const tasks = await Tasks.getAllTasks();
       res.status(200).json({ coconut_tasks: tasks });
     } catch (error) {
       console.error('Error fetching tasks:', error);

@@ -7,7 +7,7 @@ const dbConfig = {
   database: process.env.DB_NAME,
 };
 
-export default async function handler(req, res) {
+export default async function storeTaskResultHandler(req, res) {
   if (req.method === 'POST') {
     const { deviceId, taskId, location, date, time, isFeasible } = req.body;
 

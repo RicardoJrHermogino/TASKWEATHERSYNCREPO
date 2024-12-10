@@ -332,14 +332,6 @@ const RecommendedTask = ({ weatherData, currentWeatherData, useCurrentWeather, l
         )}
       </Grid>
   
-      {location && (
-        <Typography variant="body2" sx={{ mb: 2 }}>
-          {useCurrentWeather
-            ? `Current recommendations for ${location}`
-            : `Recommendations for ${location} on ${selectedDate}`}
-        </Typography>
-      )}
-  
       <Grid container>
         {recommendedTasks.length > 0 ? (
           recommendedTasks.slice(0, 3).map((task, index) => (
@@ -364,9 +356,38 @@ const RecommendedTask = ({ weatherData, currentWeatherData, useCurrentWeather, l
           ))
         ) : (
           <Grid item xs={12}>
-            <Typography variant="body1" color="text.secondary">
-              No tasks recommended based on the current weather conditions.
-            </Typography>
+            <Paper 
+              elevation={3}
+              sx={{
+                padding: '16px',
+                borderRadius: '12px',
+                backgroundColor: '#f5f5f5', // Light grey background
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)', // Soft shadow
+                border: '1px solid rgba(0,0,0,0.08)', // Subtle border
+                transition: 'transform 0.3s ease-in-out',
+                '&:hover': {
+                  transform: 'scale(1.02)', // Slight scale effect on hover
+                  boxShadow: '0 6px 8px rgba(0,0,0,0.15)' // Slightly enhanced shadow on hover
+                }
+              }}
+            >
+              <Typography 
+                variant="body1" 
+                color="text.secondary"
+                sx={{
+                  fontStyle: 'italic',
+                  fontWeight: 500,
+                  color: '#666', // Softer text color
+                  textAlign: 'center'
+                }}
+              >
+                No tasks recommended based on the selected weather conditions.
+              </Typography>
+            </Paper>
           </Grid>
         )}
       </Grid>

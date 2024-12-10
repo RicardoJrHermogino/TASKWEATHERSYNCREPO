@@ -105,9 +105,9 @@ export default function Forecasts() {
           </IconButton>
         </Grid>
 
-        <Grid item xs={12} md={3}>
+        <Grid item xs={12} md={12}>
           <Grid container alignItems="center" justifyContent="center">
-            <Grid item xs={12} sx={{ border: '1px solid black', borderRadius: '24px', height: '55px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Grid item xs={12} md={12} sx={{ border: '1px solid black', borderRadius: '24px', height: '55px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               <Typography variant="body2">
                 Location: {location}
               </Typography>
@@ -116,7 +116,7 @@ export default function Forecasts() {
         </Grid>
 
         <Grid item xs={12}>
-          <Typography variant="h6" align="left"><strong>Weather Map</strong></Typography>
+          <Typography variant="h6" align="left"><strong>Current Weather Map</strong></Typography>
         </Grid>
 
         <Grid item xs={12} sx={{ borderRadius: '16px', overflow: 'hidden' }}>
@@ -184,85 +184,119 @@ export default function Forecasts() {
         </Grid>
 
         <Grid item xs={12}>
-          <Typography variant="h6" align="left"><strong>Next Days Forecast</strong></Typography>
+          <Typography variant="h6" align="left"><strong>Next 5 Days Forecast</strong></Typography>
         </Grid>
 
 
         <Grid item xs={12}>
+  {forecastData && (
+    <Grid 
+      container 
+      spacing={3} 
+      sx={{ 
+        display: 'flex', 
+        flexWrap: 'wrap', 
+        justifyContent: 'center' 
+      }}
+    >
+      {Array.from({ length: 5 })
+        .map((_, index) => {
+          const targetDate = dayjs().add(index + 1, 'day').format('YYYY-MM-DD');
+          const forecast = forecastData.find(
+            (data) => data.date === targetDate && data.time === '12:00:00'
+          );
 
-                        {forecastData && (
-                      <Grid container spacing={3}>
-                        {Array.from({ length: 5 }).map((_, index) => {
-                          const targetDate = dayjs().add(index + 1, 'day').format('YYYY-MM-DD');
-                          const forecast = forecastData.find(
-                            (data) => data.date === targetDate && data.time === '12:00:00'
-                          );
+          // Only return the card if forecast exists
+          return forecast ? (
+            <Grid 
+              item 
+              xs={6} 
+              sm={4} 
+              md={2.4} 
+              key={index}
+              sx={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'stretch' 
+              }}
+            >
+              <Paper
+                onClick={() => handleDayForecastClick(targetDate)}
+                sx={{
+                  width: '100%',
+                  aspectRatio: '1/1', 
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  padding: '20px',
+                  textAlign: 'center',
+                  borderRadius: '20px',
+                  boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.2)',
+                  transition: 'transform 0.3s ease',
+                }}
+              >
+                {/* Top section with icon and temperature side by side */}
+                <Grid 
+                  container 
+                  alignItems="center" 
+                  justifyContent="space-between"
+                  sx={{ 
+                    width: '100%', 
+                    marginBottom: 2 
+                  }}
+                >
+                  <Grid item xs={6}>
+                    <Image
+                      src={getWeatherIcon(
+                        forecast.weather_id,
+                        dayjs(forecast.date).format('MMMM DD, YYYY'),
+                        forecast.time,
+                        false
+                      )}
+                      alt="weather-icon"
+                      width={70}
+                      height={70}
+                      style={{ 
+                        borderRadius: '10%',
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain'
+                      }}
+                      priority
+                    />
+                  </Grid>
+                  <Grid 
+                    item 
+                    xs={6} 
+                    sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'center' 
+                    }}
+                  >
+                    <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                      {forecast.temperature.toFixed(0)}&deg;C
+                    </Typography>
+                  </Grid>
+                </Grid>
 
-                          return (
-                              <Grid item 
-                              xs={6} 
-                              md={3} 
-                              key={index}
-                              onClick={() => handleDayForecastClick(targetDate)}
- 
-                              >
-                              <Paper
-                                sx={{
-                                  padding: '20px',
-                                  textAlign: 'center',
-                                  borderRadius: '20px',
-                                  boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.2)',
-                                }}
-                              >
-                                <Grid container alignItems="center" justifyContent="center">
-                                  <Grid item xs={6}>
-                                    {forecast ? (
-                                      <Image
-                                        src={getWeatherIcon(
-                                          forecast.weather_id,
-                                          dayjs(forecast.date).format('MMMM DD, YYYY'),
-                                          forecast.time,
-                                          false
-                                        )}
-                                        alt="weather-icon"
-                                        width={60}
-                                        height={60}
-                                        style={{ borderRadius: '10%' }}
-                                        priority
-                                      />
-                                    ) : (
-                                      <Typography>No data</Typography>
-                                    )}
-                                  </Grid>
-                                  <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                                    {forecast ? (
-                                      <Typography variant="h6">
-                                        <strong>{forecast.temperature.toFixed(0)}&deg;C</strong>
-                                      </Typography>
-                                    ) : (
-                                      <Typography>No data</Typography>
-                                    )}
-                                  </Grid>
-                                </Grid>
-                                <Typography sx={{ fontSize: '14px' }}>
-                                  {forecast ? (
-                                    <>
-                                      <strong>{dayjs(forecast.date).format('dddd')}</strong>{' '}
-                                      <span style={{ color: '#757575' }}>
-                                        {dayjs(forecast.date).format('MMMM DD, YYYY')}
-                                      </span>
-                                    </>
-                                  ) : (
-                                    'No data available'
-                                  )}
-                                </Typography>
-                              </Paper>
-                            </Grid>
-                          );
-                        })}
-                      </Grid>
-                    )}
-          </Grid>
+                {/* Bottom section with date */}
+                <Grid item>
+                  <Typography sx={{ fontSize: '14px', textAlign: 'center' }}>
+                    <strong>{dayjs(forecast.date).format('dddd')}</strong>{' '}
+                    <span style={{ color: '#757575', display: 'block' }}>
+                      {dayjs(forecast.date).format('MMM DD')}
+                    </span>
+                  </Typography>
+                </Grid>
+              </Paper>
+            </Grid>
+          ) : null;
+        })
+        .filter(Boolean) // Remove null values
+      }
+    </Grid>
+  )}
+</Grid>
         
 
 

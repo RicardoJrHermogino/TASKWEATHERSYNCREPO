@@ -41,16 +41,17 @@ const WeatherDisplay = ({
   useEffect(() => {
     if (weatherCondition && temperature && selectedLocation) {
       const currentDisplayDate = isCurrentWeather
-        ? dayjs().format('dddd, MMMM D, YYYY')
+        ? dayjs().format('dddd, MMMM D, YYYY')  // Show full date for current weather
         : dayjs(selectedDate).isValid()
-        ? dayjs(selectedDate).format('dddd, MMMM D, YYYY')
-        : displayData.displayDate;
-
+        ? dayjs(selectedDate).format('dddd, MMMM D, YYYY') // Show selected date
+        : '';
+    
+      // For current weather, display only the hour with minutes set to 00 and AM/PM
       const currentDisplayTime = isCurrentWeather
-        ? dayjs().format('h:mm A')
+        ? dayjs().hour(dayjs().hour()).minute(0).format('h:00 A')  // Show current hour with minutes set to 00 and AM/PM
         : selectedTime
-        ? dayjs(selectedTime, 'HH:mm').format('h:mm A')
-        : displayData.displayTime;
+        ? dayjs(selectedTime, 'HH:mm').format('h:mm A')  // Show full time with AM/PM for selected time
+        : '';
 
       const newIcon = getWeatherIcon(weatherCondition, selectedDate, selectedTime, isCurrentWeather);
 
@@ -67,6 +68,7 @@ const WeatherDisplay = ({
       setDisplayData(dataToStore);
     }
   }, [weatherCondition, temperature, selectedLocation, selectedDate, selectedTime, isCurrentWeather]);
+
 
   const {
     weatherCondition: currentCondition,
@@ -126,12 +128,16 @@ const WeatherDisplay = ({
                 <Typography variant="h3">
                   {currentTemperature !== null ? `${currentTemperature}°C` : 'Loading...'}
                 </Typography>
-                <Typography variant="caption" display="block">
-                  {displayDate}
-                </Typography>
-                <Typography variant="caption" display="block">
-                  {displayTime}
-                </Typography>
+                {(currentCondition && currentTemperature && displayLocation) && (
+                  <>
+                    <Typography variant="caption" display="block">
+                      {displayDate}
+                    </Typography>
+                    <Typography variant="caption" display="block">
+                      {displayTime}
+                    </Typography>
+                  </>
+                )}
 
                 {/* <button
                   onClick={clearStorage}

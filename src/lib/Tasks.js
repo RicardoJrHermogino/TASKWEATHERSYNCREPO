@@ -1,7 +1,6 @@
-// lib/TaskService.js
-import { getTasksFromDatabase } from './db'; // assuming this function connects to MySQL
+import { getTasksFromDatabase } from './db'; 
 
-class TaskService {
+class Tasks {
   async getAllTasks() {
     try {
       const tasks = await getTasksFromDatabase();
@@ -12,4 +11,4 @@ class TaskService {
   }
 }
 
-export default new TaskService();
+export default new Tasks();
