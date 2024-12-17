@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CloseIcon from '@mui/icons-material/Close';
+import SignalWifiOffIcon from '@mui/icons-material/SignalWifiOff';
 import {
   Box,
   Typography,
@@ -52,6 +53,32 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
     message: ''
   });
 
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [offlineDialogOpen, setOfflineDialogOpen] = useState(!navigator.onLine);
+
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      setOfflineDialogOpen(false);
+      // Attempt to reload tasks when back online
+      fetchTasks();
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      setOfflineDialogOpen(true);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   const getDeviceId = async () => {
     try {
       // Try to get the existing userId from Preferences
@@ -75,18 +102,26 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
     }
   };
 
-  // Fetch tasks for the form
+   // Fetch tasks for the form
+   const fetchTasks = async () => {
+    if (!navigator.onLine) {
+      setLoading(false);
+      setOfflineDialogOpen(true);
+      return;
+    }
+
+    try {
+      const response = await axios.get('/api/coconut_tasks');
+      setTasks(response.data.coconut_tasks || []);
+      setLoading(false);
+    } catch (error) {
+      toast.error("Failed to load tasks");
+      setLoading(false);
+      setError(error);
+    }
+  };
+
   useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        const response = await axios.get('/api/coconut_tasks');
-        setTasks(response.data.coconut_tasks || []);
-        setLoading(false);
-      } catch (error) {
-        toast.error("Failed to load tasks");
-        setLoading(false);
-      }
-    };
     fetchTasks();
   }, []);
 
@@ -295,28 +330,75 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
     }
   };
   
+  const renderOfflineDialog = () => (
+    <Dialog 
+      open={offlineDialogOpen} 
+      onClose={() => setOfflineDialogOpen(false)} 
+      fullWidth 
+      maxWidth="sm"
+    >
+      <DialogTitle>
+        <Box display="flex" alignItems="center" justifyContent="center" flexDirection="column">
+          <SignalWifiOffIcon sx={{ fontSize: 100, color: '#e0e0e0', mb: 2 }} />
+          <Typography variant="h5" align="center">No Internet Connection</Typography>
+        </Box>
+      </DialogTitle>
+      <DialogContent>
+        <Typography variant="body1" align="center" color="textSecondary">
+          Please check your network connection and try again. 
+          Some features may be limited without an internet connection.
+        </Typography>
+      </DialogContent>
+      <DialogActions>
+        <Button 
+          fullWidth 
+          variant="contained" 
+          onClick={() => {
+            if (navigator.onLine) {
+              setOfflineDialogOpen(false);
+              fetchTasks();
+            } else {
+              toast.error("Still offline. Please check your connection.");
+            }
+          }}
+          sx={{
+            borderRadius: '9999px',
+            m: 2,
+            py: 1.5,
+          }}
+        >
+          Retry Connection
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
   
 
     return (
+      <>
       <Dialog 
-    open={open} onClose={handleClose} fullWidth maxWidth="md" sx={{
-      '& .MuiBackdrop-root': {
-        backgroundColor: 'rgba(255, 255, 255, 0.3)',
-        backdropFilter: 'blur(5px)',
-      },
-      '& .MuiDialog-paper': {
-        padding: '4px',
-        p: '10px',
-        height: '80%',
-        maxHeight: 'none',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        borderRadius: '30px',
-        boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.15)',
-      },
-    }}
-  >
+        open={open && isOnline} 
+        onClose={handleClose} 
+        fullWidth 
+        maxWidth="md" 
+        sx={{
+          '& .MuiBackdrop-root': {
+            backgroundColor: 'rgba(255, 255, 255, 0.3)',
+            backdropFilter: 'blur(5px)',
+          },
+          '& .MuiDialog-paper': {
+            padding: '4px',
+            p: '10px',
+            height: '80%',
+            maxHeight: 'none',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            borderRadius: '30px',
+            boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.15)',
+          },
+        }}
+      >
     <DialogTitle sx={{ 
       pb: 3,
       fontSize: '24px', // Increase font size for the title
@@ -325,7 +407,16 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
       color: '#333', // Darker text color for better contrast
       mb:'20px'
     }}>
-      Check If the Weather is Right for Your Task
+      Check Task Suitability for Weather
+        <CloseIcon 
+          onClick={handleClose} 
+          sx={{
+            position: 'absolute', // Position absolute to top-right
+            top: '20px',
+            right: '20px',
+            cursor: 'pointer',
+          }} 
+        />
     </DialogTitle>
 
     <DialogContent sx={{ 
@@ -350,6 +441,7 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
             flexDirection: 'column',
             justifyContent: 'space-between',
             height: '100%',
+            mt:'5px'  
           }}
         >
         <Grid container spacing={4} sx={{ mb: 'auto' }}>
@@ -382,7 +474,7 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
             {/* Separate Date and Time into their own rows */}
             <Grid item xs={12}>
               <FormControl fullWidth>
-                <InputLabel>Date</InputLabel>
+                <InputLabel>Select  Date</InputLabel>
                 <Select
                   value={selectedDate}
                   label="Date"
@@ -403,7 +495,7 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
 
             <Grid item xs={12}>
               <FormControl fullWidth>
-                <InputLabel>Time</InputLabel>
+                <InputLabel> Select Time</InputLabel>
                 <Select
                   value={selectedTime}
                   label="Time"
@@ -476,6 +568,9 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
       />
     </DialogContent>
   </Dialog>
+  {renderOfflineDialog()}
+  </>
+  
 
     );
   };

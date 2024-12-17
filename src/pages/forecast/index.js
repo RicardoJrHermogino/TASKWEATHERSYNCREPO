@@ -17,7 +17,7 @@ const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
 export default function Forecasts() {
   const { location } = useLocation();
   const router = useRouter();
-
+  const [isOnline, setIsOnline] = useState(true);
   const [forecastData, setForecastData] = useState(null);
   const [weatherToday, setWeatherToday] = useState(null);
   const [lat, setLat] = useState(null);
@@ -26,27 +26,90 @@ export default function Forecasts() {
   const currentDate = dayjs().format("MMMM DD, YYYY");
   const currentDay = dayjs().format("dddd");
 
+
+    // Network status checking
+    useEffect(() => {
+      // Check initial online status
+      const checkOnlineStatus = () => {
+        const online = navigator.onLine;
+        setIsOnline(online);
+        
+        if (!online) {
+          router.push('/offline');
+        }
+      };
+  
+      // Network status change handlers
+      const handleOnline = () => {
+        setIsOnline(true);
+      };
+  
+      const handleOffline = () => {
+        setIsOnline(false);
+        router.push('/offline');
+      };
+  
+      // Add event listeners
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+  
+      // Initial check
+      checkOnlineStatus();
+  
+      // Cleanup listeners
+      return () => {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      };
+    }, [router]);
+
+
+
   // Function to fetch weather data from OpenWeatherMap API using lat and lon
   const fetchWeatherData = (lat, lon) => {
+    if (!navigator.onLine) {
+      router.push('/offline');
+      return;
+    }
     const currentWeatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
     const customForecastUrl = `/api/getWeatherData?lat=${lat}&lon=${lon}`;
 
-    // Fetch current weather data
-    fetch(currentWeatherUrl)
-      .then((response) => response.json())
-      .then((data) => {
-        setWeatherToday(data);
-      })
-      .catch((error) => console.error("Error fetching current weather data:", error));
+     // Fetch current weather data
+     fetch(currentWeatherUrl)
+     .then((response) => {
+       if (!response.ok) {
+         throw new Error('Network response was not ok');
+       }
+       return response.json();
+     })
+     .then((data) => {
+       setWeatherToday(data);
+     })
+     .catch((error) => {
+       console.error("Error fetching current weather data:", error);
+       if (!navigator.onLine) {
+         router.push('/offline');
+       }
+     });
 
-    // Fetch forecast data from your custom API
-    fetch(customForecastUrl)
-      .then((response) => response.json())
-      .then((data) => {
-        setForecastData(data);
-      })
-      .catch((error) => console.error("Error fetching forecast data:", error));
-  };
+   // Fetch forecast data from your custom API
+   fetch(customForecastUrl)
+     .then((response) => {
+       if (!response.ok) {
+         throw new Error('Network response was not ok');
+       }
+       return response.json();
+     })
+     .then((data) => {
+       setForecastData(data);
+     })
+     .catch((error) => {
+       console.error("Error fetching forecast data:", error);
+       if (!navigator.onLine) {
+         router.push('/offline');
+       }
+     });
+ };
 
   useEffect(() => {
     if (locationCoordinates[location]) {
@@ -89,6 +152,21 @@ export default function Forecasts() {
   };
   return (
     <>
+     {!isOnline && (
+        <div style={{ 
+          position: 'fixed', 
+          top: 0, 
+          left: 0, 
+          width: '100%', 
+          backgroundColor: '#f44336', 
+          color: 'white', 
+          textAlign: 'center', 
+          padding: '10px',
+          zIndex: 1000 
+        }}>
+          No Internet Connection
+        </div>
+      )}
       <CssBaseline />
       <Navbar />
       <Grid container mb={15} spacing={3} style={{ padding: "20px" }}>

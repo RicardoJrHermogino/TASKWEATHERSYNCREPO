@@ -6,6 +6,7 @@ import { isNightTime } from './WeatherIcon';
 import { mapWeatherCondition } from './WeatherCondition';
 import { getWeatherIcon } from './WeatherIcon';
 import { getFarmingMessage } from './WeatherMessage';
+import RainAndPopMessage from './RainAndPopMessage';
 
 const WeatherDisplay = ({
   location,
@@ -15,6 +16,7 @@ const WeatherDisplay = ({
   weatherCondition,
   temperature,
   isCurrentWeather,
+  weatherData
 }) => {
   const [displayData, setDisplayData] = useState({
     weatherCondition: '',
@@ -25,7 +27,10 @@ const WeatherDisplay = ({
     weatherIcon: '/3d-weather-icons/default/01.png'
   });
 
-
+ // Extract pop and rain3h from weatherData
+ const pop = weatherData?.pop;
+ const rain3h = weatherData?.rain3h;
+ 
   const clearStorage = () => {
     localStorage.removeItem('weatherData'); // Remove the weather data
     window.location.reload(); // Reload the app to see the changes
@@ -157,13 +162,16 @@ const WeatherDisplay = ({
           )}
         </CardContent>
       </Card>
-      {farmingMessage && (
+      <Grid item xs={12} sx={{ textAlign: 'center' }} mt={3}>
+      <RainAndPopMessage pop={pop} rain3h={rain3h} />
+      </Grid>
+      {/* {farmingMessage && (
         <Grid item xs={12} sx={{ textAlign: 'center' }} mt={3}>
           <Typography sx={{ fontWeight: 'bold', fontSize: { xs: '0.80rem', sm: '0.875rem' }, color: '#757575' }}>
             {farmingMessage}
           </Typography>
         </Grid>
-      )}
+      )} */}
     </Grid>
   );  
 };

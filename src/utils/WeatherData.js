@@ -21,7 +21,7 @@ class WeatherData {
       // Now insert the new weather data
       const insertQuery = `
         INSERT INTO forecast_data 
-        (location, lat, lon, date, time, temperature, weather_id, pressure, humidity, clouds, wind_speed, wind_gust)
+        (location, lat, lon, date, time, temperature, weather_id, pressure, humidity, clouds, wind_speed, wind_gust, pop, rain_3h)
         VALUES ?
       `;
       
@@ -38,6 +38,8 @@ class WeatherData {
         item.clouds,
         item.wind_speed,
         item.wind_gust || null,
+        item.pop || null,
+        item.rain_3h || null,
       ]);
 
       const [result] = await connection.query(insertQuery, [values]);

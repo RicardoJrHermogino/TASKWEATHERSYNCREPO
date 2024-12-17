@@ -32,6 +32,8 @@ class WeatherAPI {
           clouds: item.clouds.all,
           wind_speed: item.wind.speed,
           wind_gust: item.wind.gust || null,
+          pop: item.pop || null,  
+          rain_3h: item.rain ? item.rain['3h'] || null : null, 
         };
       });
     }

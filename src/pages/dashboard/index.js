@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import { Grid, Button, CircularProgress, Typography, CssBaseline, IconButton, Badge, Drawer, Divider } from "@mui/material";
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import dayjs from "dayjs";
@@ -43,6 +44,10 @@ const Dashboard = () => {
   const [availableForecastTimes, setAvailableForecastTimes] = useState([]);
   const [isToastVisible, setIsToastVisible] = useState(false);
   const [hasInteractedWithTime, setHasInteractedWithTime] = useState(false);
+  const [lastToastTime, setLastToastTime] = useState(0);
+  const TOAST_COOLDOWN = 5000; // 2 seconds cooldown between toasts
+  const [isOnline, setIsOnline] = useState(true);
+  const router = useRouter();
 
   
 
@@ -50,6 +55,8 @@ const Dashboard = () => {
   const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY; 
 
   const showSuccessToast = (message) => {
+    const currentTime = Date.now();
+    if (currentTime - lastToastTime > TOAST_COOLDOWN) {
     toast.success(message, {
       duration: 4000,
       style: {
@@ -58,21 +65,71 @@ const Dashboard = () => {
         boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
       },
     });
-  };
+    
+    // Update the last toast time
+    setLastToastTime(currentTime);
+  }
+};
 
   const showErrorToast = (message) => {
-    toast.error(message, {
-      duration: 4000,
-      style: {
-        borderRadius: "30px",
-        fontSize: "16px",
-        boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-      },
-    });
+    const currentTime = Date.now();
+    
+    // Check if enough time has passed since the last toast
+    if (currentTime - lastToastTime > TOAST_COOLDOWN) {
+      toast.error(message, {
+        duration: 4000,
+        style: {
+          borderRadius: "30px",
+          fontSize: "16px",
+          boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+        },
+      });
+      
+      // Update the last toast time
+      setLastToastTime(currentTime);
+    }
   };
+
+
+  useEffect(() => {
+    // Check initial online status
+    const checkOnlineStatus = () => {
+      setIsOnline(navigator.onLine);
+      if (!navigator.onLine) {
+        router.push('/offline');
+      }
+    };
+
+        // Network status change handlers
+        const handleOnline = () => {
+          setIsOnline(true);
+        };
+    
+        const handleOffline = () => {
+          setIsOnline(false);
+          router.push('/offline');
+        };
+    
+        // Add event listeners
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+    
+        // Initial check
+        checkOnlineStatus();
+    
+        // Cleanup listeners
+        return () => {
+          window.removeEventListener('online', handleOnline);
+          window.removeEventListener('offline', handleOffline);
+        };
+      }, [router]);
 
   // Fetch current weather data based on the user's location
   const fetchCurrentWeatherData = async (lat, lon) => {
+    if (!navigator.onLine) {
+      router.push('/offline');
+      return;
+    }
     setLoading(true);
     setIsCurrentWeather(true); // Set to current weather
     setSelectedTime(dayjs().format('HH:mm')); // Add current time when fetching current weather
@@ -87,7 +144,12 @@ const Dashboard = () => {
       setTemperature(Math.round(currentWeather.main.temp));
       showSuccessToast("Current Weather Displayed.");
     } catch (error) {
-      showErrorToast("Failed to fetch current weather data.");
+      // Check if the error is due to network issues
+      if (!navigator.onLine || error.message.includes('Network Error')) {
+        router.push('/offline');
+      } else {
+        showErrorToast("Failed to fetch current weather data.");
+      }
     } finally {
       setLoading(false);
     }
@@ -95,6 +157,10 @@ const Dashboard = () => {
 
   // Fetch weather data for the selected date, time, and location
   const fetchWeatherData = async (lat, lon) => {
+    if (!navigator.onLine) {
+      router.push('/offline');
+      return;
+    }
     setLoading(true);
     setIsCurrentWeather(false);
   
@@ -134,11 +200,23 @@ const Dashboard = () => {
         try {
           const detailResponse = await axios.get(`/api/getWeatherData?weather_data_id=${matchedForecast.weather_data_id}`);
           const detailedData = detailResponse.data;
+
+          // Process pop and rain_3h
+          const pop = matchedForecast.pop !== undefined 
+            ? parseFloat(matchedForecast.pop)
+            : null;
+          const rain3h = matchedForecast.rain_3h !== undefined 
+            ? parseFloat(matchedForecast.rain_3h) 
+            : 0;
   
           console.log('Detailed Weather Data:', detailedData);
   
           setWeatherId(detailedData.weather_id);
-          setWeatherData(detailedData);
+          setWeatherData({
+            ...detailedData,
+            pop,
+            rain3h
+          });
           setTemperature(Math.round(detailedData.temperature));
           showSuccessToast("Forecasted Weather Displayed.");
         } catch (detailError) {
@@ -149,8 +227,12 @@ const Dashboard = () => {
         showErrorToast("No weather data available for the selected time and location.");
       }
     } catch (error) {
-      console.error('Error fetching weather data:', error.response?.data || error.message);
-      showErrorToast(`Failed to fetch weather data: ${error.response?.data?.message || error.message}`);
+      // Check if the error is due to network issues
+      if (!navigator.onLine || error.message.includes('Network Error')) {
+        router.push('/offline');
+      } else {
+        showErrorToast(`Failed to fetch weather data: ${error.response?.data?.message || error.message}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -320,11 +402,11 @@ const Dashboard = () => {
         <WeatherDisplay 
           temperature={temperature} 
           weatherCondition={weatherId} 
-          isCurrentWeather={isCurrentWeather} 
           location={submittedLocation}
           selectedLocation={submittedLocation}
           selectedDate={submittedDate}
           selectedTime={submittedTime}
+          weatherData={weatherData}
         />
 
         {/* Recommended Task Component */}

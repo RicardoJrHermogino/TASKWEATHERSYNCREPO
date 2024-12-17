@@ -4,8 +4,9 @@ import {
   DialogContent, 
   Box, 
   Typography, 
-  Slide,
-  IconButton
+  Slide, 
+  IconButton, 
+  Button 
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
@@ -26,6 +27,11 @@ const TaskFeasibilityResultDialog = ({
   selectedTime, 
   resultMessage 
 }) => {
+  // Updated time formatting to handle 'Now' case
+  const formattedTime = selectedTime === 'Now' 
+    ? 'Now' 
+    : dayjs(`${dayjs().format('YYYY-MM-DD')} ${selectedTime}`).format('hh:mm A');
+
   return (
     <Dialog
       open={open}
@@ -105,11 +111,10 @@ const TaskFeasibilityResultDialog = ({
               borderRadius: 2
             }}
           >
-            {[
-              { label: 'Task', value: selectedTask },
+            {[{ label: 'Task', value: selectedTask },
               { label: 'Location', value: selectedLocation },
               { label: 'Date', value: dayjs(selectedDate).format('MM/DD/YYYY') },
-              { label: 'Time', value: selectedTime }
+              { label: 'Time', value: formattedTime }
             ].map(({ label, value }) => (
               <Box key={label}>
                 <Typography 
@@ -156,6 +161,29 @@ const TaskFeasibilityResultDialog = ({
             >
               {resultMessage}
             </Typography>
+          </Box>
+
+          {/* Close Button at the Bottom */}
+          <Box sx={{ mt: 2,width: '100%', display: 'grid', }}>
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={onClose}
+              sx={{
+                backgroundColor: '#48ccb4',
+                color: 'black',
+                borderRadius: '9999px',
+                py: 1.9, // Increased padding for a fatter button
+                textTransform: 'none',
+                fontSize: '15px', // Optional: increase font size for a bolder look
+                '&:hover': {
+                  bgcolor: 'rgb(229, 231, 235)',
+                },
+                boxShadow: 'none',
+              }}
+            >
+              Close
+            </Button>
           </Box>
         </Box>
       </DialogContent>

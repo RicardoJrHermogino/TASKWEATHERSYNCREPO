@@ -33,7 +33,7 @@ const WelcomeFeatures = () => {
     },
     {
       icon: <CalendarMonth sx={{ width: 32, height: 32, color: '#2196F3' }} />,
-      title: "Smart Scheduling",
+      title: "Task Recommendations",
       description: "Task recommendations based on weather patterns"
     },
     {
