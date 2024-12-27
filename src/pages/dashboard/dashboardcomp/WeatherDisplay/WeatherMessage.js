@@ -31,3 +31,5 @@ export const getFarmingMessage = (weatherId, temperature) => {
     return "The weather is good today. It’s a perfect day for regular coconut farm work like harvesting, irrigation, or general maintenance.";
   }
 };
+
+export default getFarmingMessage;

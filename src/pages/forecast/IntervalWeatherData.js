@@ -71,6 +71,9 @@ export default function HourlyForecastDetails() {
               ).format('h:mm A')
             : 'N/A';
           
+          // Log the hourly forecast data for debugging
+          console.log(`Hourly Forecast for ${formattedTime}:`, hourlyForecast);
+
           return (
             <Grid item xs={6} key={index}>
               <Paper 

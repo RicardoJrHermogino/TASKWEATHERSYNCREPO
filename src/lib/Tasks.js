@@ -1,4 +1,4 @@
-import { getTasksFromDatabase } from './db'; 
+import { getTasksFromDatabase } from './db';
 
 class Tasks {
   async getAllTasks() {
@@ -11,4 +11,7 @@ class Tasks {
   }
 }
 
-export default new Tasks();
+// Assign the instance to a named variable
+const tasksInstance = new Tasks();
+
+export default tasksInstance;

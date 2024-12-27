@@ -34,3 +34,6 @@ export const TaskLoadingPlaceholder = () => {
     </Container>
   );
 };
+
+
+export default TaskLoadingPlaceholder;

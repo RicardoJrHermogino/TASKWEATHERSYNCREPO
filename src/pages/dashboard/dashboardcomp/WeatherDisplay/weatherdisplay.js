@@ -18,6 +18,7 @@ const WeatherDisplay = ({
   isCurrentWeather,
   weatherData
 }) => {
+  // Remove pop and rain3h from displayData since we'll use them directly from props
   const [displayData, setDisplayData] = useState({
     weatherCondition: '',
     temperature: '',
@@ -27,35 +28,32 @@ const WeatherDisplay = ({
     weatherIcon: '/3d-weather-icons/default/01.png'
   });
 
- // Extract pop and rain3h from weatherData
- const pop = weatherData?.pop;
- const rain3h = weatherData?.rain3h;
- 
   const clearStorage = () => {
-    localStorage.removeItem('weatherData'); // Remove the weather data
-    window.location.reload(); // Reload the app to see the changes
+    localStorage.removeItem('weatherData');
+    window.location.reload();
   };
 
   useEffect(() => {
     const storedData = JSON.parse(localStorage.getItem('weatherData'));
     if (storedData) {
-      setDisplayData(storedData);
+      // Explicitly exclude pop and rain3h from stored data
+      const { pop, rain3h, ...weatherDisplayData } = storedData;
+      setDisplayData(weatherDisplayData);
     }
   }, []);
 
   useEffect(() => {
     if (weatherCondition && temperature && selectedLocation) {
       const currentDisplayDate = isCurrentWeather
-        ? dayjs().format('dddd, MMMM D, YYYY')  // Show full date for current weather
+        ? dayjs().format('dddd, MMMM D, YYYY')
         : dayjs(selectedDate).isValid()
-        ? dayjs(selectedDate).format('dddd, MMMM D, YYYY') // Show selected date
+        ? dayjs(selectedDate).format('dddd, MMMM D, YYYY')
         : '';
     
-      // For current weather, display only the hour with minutes set to 00 and AM/PM
       const currentDisplayTime = isCurrentWeather
-        ? dayjs().hour(dayjs().hour()).minute(0).format('h:00 A')  // Show current hour with minutes set to 00 and AM/PM
+        ? dayjs().hour(dayjs().hour()).minute(0).format('h:00 A')
         : selectedTime
-        ? dayjs(selectedTime, 'HH:mm').format('h:mm A')  // Show full time with AM/PM for selected time
+        ? dayjs(selectedTime, 'HH:mm').format('h:mm A')
         : '';
 
       const newIcon = getWeatherIcon(weatherCondition, selectedDate, selectedTime, isCurrentWeather);
@@ -74,7 +72,6 @@ const WeatherDisplay = ({
     }
   }, [weatherCondition, temperature, selectedLocation, selectedDate, selectedTime, isCurrentWeather]);
 
-
   const {
     weatherCondition: currentCondition,
     temperature: currentTemperature,
@@ -85,7 +82,12 @@ const WeatherDisplay = ({
   } = displayData;
 
   const userFriendlyCondition = mapWeatherCondition(currentCondition, selectedDate, isCurrentWeather);
-  const farmingMessage = getFarmingMessage(currentCondition, currentTemperature);
+
+  // Only show message if current weatherData has pop/rain3h AND it's not current weather
+  const shouldShowMessage = !isCurrentWeather && 
+    weatherData?.pop !== undefined && 
+    weatherData?.rain3h !== undefined &&
+    weatherCondition && temperature; // ensure we have active weather data
 
   return (
     <Grid item xs={12}>
@@ -99,7 +101,6 @@ const WeatherDisplay = ({
           padding: { xs: 1, sm: 2 },
         }}
       >
-        
         <CardContent>
           {(!currentCondition || !currentTemperature || !displayLocation) ? (
             <Grid container direction="column" alignItems="center" justifyContent="center">
@@ -143,35 +144,20 @@ const WeatherDisplay = ({
                     </Typography>
                   </>
                 )}
-
-                {/* <button
-                  onClick={clearStorage}
-                  style={{
-                    padding: '10px 20px',
-                    backgroundColor: '#ff4d4d',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Clear Local Storage
-                </button> */}
               </Grid>
             </Grid>
           )}
         </CardContent>
       </Card>
-      <Grid item xs={12} sx={{ textAlign: 'center' }} mt={3}>
-      <RainAndPopMessage pop={pop} rain3h={rain3h} />
-      </Grid>
-      {/* {farmingMessage && (
+      
+      {shouldShowMessage && (
         <Grid item xs={12} sx={{ textAlign: 'center' }} mt={3}>
-          <Typography sx={{ fontWeight: 'bold', fontSize: { xs: '0.80rem', sm: '0.875rem' }, color: '#757575' }}>
-            {farmingMessage}
-          </Typography>
+          <RainAndPopMessage 
+            pop={weatherData.pop} 
+            rain3h={weatherData.rain3h} 
+          />
         </Grid>
-      )} */}
+      )}
     </Grid>
   );  
 };

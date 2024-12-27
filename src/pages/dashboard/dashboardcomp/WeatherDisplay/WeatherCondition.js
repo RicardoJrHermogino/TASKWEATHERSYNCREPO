@@ -83,3 +83,6 @@ export const mapWeatherCondition = (weatherId, selectedDate, isCurrentWeather) =
       return "Unknown Weather";
   }
 };
+
+
+export default mapWeatherCondition;

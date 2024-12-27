@@ -1,20 +1,15 @@
-
-import React, { useState, useEffect, useMemo } from 'react';
-import { Grid, Typography, Paper, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, ButtonBox,IconButton, Box } from '@mui/material';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Grid, Typography, Paper, CircularProgress } from '@mui/material';
 import { useRouter } from 'next/router';
 import { Preferences } from '@capacitor/preferences';
+import TaskDetailsDialog from './TaskDetailsDialog'; // Using the separate dialog component
 import dayjs from 'dayjs';
-import CloseIcon from '@mui/icons-material/Close';
-import MapIcon from '@mui/icons-material/Map';
-import EventIcon from '@mui/icons-material/Event';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
-// Helper function to extract weather data from different formats
+// Function to extract weather data
 const extractWeatherData = (data) => {
   if (!data) return null;
 
   if (data.weather) {
-    // currentWeatherData structure
     return {
       temp: data.main.temp,
       humidity: data.main.humidity,
@@ -25,7 +20,6 @@ const extractWeatherData = (data) => {
       weatherId: data.weather[0]?.id,
     };
   } else if (data.temperature !== undefined) {
-    // weatherData structure (forecasted)
     return {
       location: data.location,
       date: data.date,
@@ -42,67 +36,32 @@ const extractWeatherData = (data) => {
   return null;
 };
 
-// Helper function to evaluate if the task matches the weather conditions
+// Function to evaluate if a task is suitable based on the weather
 const evaluateTask = (task, weather) => {
-  console.log('Using weather data:', weather);
+  if (!weather) return false;
 
-  console.log(`Required data for task "${task.task_name}":`, {
-    requiredTemperature_min: task.requiredTemperature_min,
-    requiredTemperature_max: task.requiredTemperature_max,
-    idealHumidity_min: task.idealHumidity_min,
-    idealHumidity_max: task.idealHumidity_max,
-    requiredPressure_min: task.requiredPressure_min,
-    requiredPressure_max: task.requiredPressure_max,
-    requiredWindSpeed_max: task.requiredWindSpeed_max,
-    requiredWindGust_max: task.requiredWindGust_max,
-    requiredCloudCover_max: task.requiredCloudCover_max,
-    weatherRestrictions: task.weatherRestrictions ? JSON.parse(task.weatherRestrictions) : []
-  });
-
-  const weatherRestrictions = task.weatherRestrictions ? JSON.parse(task.weatherRestrictions) : [];
-  let isRecommended = true;
-
-  // Check temperature
-  const tempCheck = weather.temp >= task.requiredTemperature_min && weather.temp <= task.requiredTemperature_max;
-  console.log(`Temperature check: ${tempCheck}`);
-  if (!tempCheck) isRecommended = false;
-
-  // Check humidity
-  const humidityCheck = weather.humidity >= task.idealHumidity_min && weather.humidity <= task.idealHumidity_max;
-  console.log(`Humidity check: ${humidityCheck}`);
-  if (!humidityCheck) isRecommended = false;
-
-  // Check pressure
-  const pressureCheck = weather.pressure >= task.requiredPressure_min && weather.pressure <= task.requiredPressure_max;
-  console.log(`Pressure check: ${pressureCheck}`);
-  if (!pressureCheck) isRecommended = false;
-
-  // Check wind speed
-  const windSpeedCheck = weather.windSpeed <= task.requiredWindSpeed_max;
-  console.log(`Wind Speed check: ${windSpeedCheck}`);
-  if (!windSpeedCheck) isRecommended = false;
-
-  // Check wind gust
-  const windGustCheck = (weather.windGust || 0) <= task.requiredWindGust_max;
-  console.log(`Wind Gust check: ${windGustCheck}`);
-  if (!windGustCheck) isRecommended = false;
-
-  // Check cloud cover
-  const cloudCoverCheck = weather.clouds <= task.requiredCloudCover_max;
-  console.log(`Cloud Cover check: ${cloudCoverCheck}`);
-  if (!cloudCoverCheck) isRecommended = false;
-
-  // Check weather restrictions
-  const weatherRestrictionCheck = weatherRestrictions.length === 0 || weatherRestrictions.includes(weather.weatherId);
-  console.log(`Weather Restriction check: ${weatherRestrictionCheck}`);
-  if (!weatherRestrictionCheck) isRecommended = false;
-
-  // Log the overall recommendation
-  console.log(`Task "${task.task_name}" is ${isRecommended ? 'Recommended' : 'Not Recommended'}`);
-
-  return isRecommended;
+  try {
+    const weatherRestrictions = task.weatherRestrictions ? JSON.parse(task.weatherRestrictions) : [];
+    
+    return (
+      weather.temp >= task.requiredTemperature_min &&
+      weather.temp <= task.requiredTemperature_max &&
+      weather.humidity >= task.idealHumidity_min &&
+      weather.humidity <= task.idealHumidity_max &&
+      weather.pressure >= task.requiredPressure_min &&
+      weather.pressure <= task.requiredPressure_max &&
+      weather.windSpeed <= task.requiredWindSpeed_max &&
+      (weather.windGust || 0) <= task.requiredWindGust_max &&
+      weather.clouds <= task.requiredCloudCover_max &&
+      (weatherRestrictions.length === 0 || weatherRestrictions.includes(weather.weatherId))
+    );
+  } catch (error) {
+    console.error('Error evaluating task:', error);
+    return false;
+  }
 };
 
+// Main RecommendedTask component
 const RecommendedTask = ({ weatherData, currentWeatherData, useCurrentWeather, location, selectedDate, selectedTime }) => {
   const [tasksData, setTasksData] = useState([]);
   const [recommendedTasks, setRecommendedTasks] = useState([]);
@@ -110,49 +69,49 @@ const RecommendedTask = ({ weatherData, currentWeatherData, useCurrentWeather, l
   const [selectedTask, setSelectedTask] = useState(null);
   const router = useRouter();
 
-  // Enhanced storage mechanism to save context
-  const saveRecommendationContext = async (context) => {
+  // Check if the selected time is 12 AM (00:00) or 9 PM (21:00)
+  const isTimeRestricted = (selectedTime) => {
+    const time = dayjs(selectedTime, 'HH:mm').hour();
+    return time === 0 || time === 21; // 12 AM (00:00) or 9 PM (21:00)
+  };
+
+  // Load saved tasks on initial render
+  useEffect(() => {
+    const loadSavedTasks = async () => {
+      try {
+        const savedTasksString = localStorage.getItem('recommendedTasks');
+        if (savedTasksString) {
+          const savedTasks = JSON.parse(savedTasksString);
+          setRecommendedTasks(savedTasks);
+        }
+      } catch (error) {
+        console.error('Error loading saved tasks:', error);
+      }
+    };
+    loadSavedTasks();
+  }, []);
+
+  // Save recommendation context to local storage or preferences
+  const saveRecommendationContext = useCallback(async (context) => {
     try {
+      const contextString = JSON.stringify(context);
       if (typeof window !== "undefined") {
-        // Save to localStorage for web
-        localStorage.setItem('recommendationContext', JSON.stringify(context));
+        localStorage.setItem('recommendationContext', contextString);
       } else {
-        // Save to Capacitor Preferences for mobile
         await Preferences.set({
           key: 'recommendationContext',
-          value: JSON.stringify(context)
+          value: contextString
         });
       }
     } catch (error) {
       console.error('Error saving recommendation context:', error);
     }
-  };
+  }, []);
 
-  // Load recommendation context
-  const loadRecommendationContext = async () => {
-    try {
-      let storedContext;
-      if (typeof window !== "undefined") {
-        // Load from localStorage for web
-        storedContext = localStorage.getItem('recommendationContext');
-      } else {
-        // Load from Capacitor Preferences for mobile
-        const { value } = await Preferences.get({ key: 'recommendationContext' });
-        storedContext = value;
-      }
-
-      return storedContext ? JSON.parse(storedContext) : null;
-    } catch (error) {
-      console.error('Error loading recommendation context:', error);
-      return null;
-    }
-  };
-
-  // Updated helper function to save recommended tasks to storage with full details
-  const saveRecommendedTasks = async (tasks) => {
+  // Save recommended tasks to local storage or preferences
+  const memoizedSaveRecommendedTasks = useCallback(async (tasks) => {
     const tasksToStore = tasks.map(task => ({
       ...task,
-      // Store additional context to recreate the full context
       storedLocation: location,
       storedDate: selectedDate,
       storedTime: selectedTime,
@@ -160,77 +119,28 @@ const RecommendedTask = ({ weatherData, currentWeatherData, useCurrentWeather, l
     }));
 
     try {
+      const tasksString = JSON.stringify(tasksToStore);
       if (typeof window !== "undefined") {
-        // Save to localStorage for web
-        localStorage.setItem('recommendedTasks', JSON.stringify(tasksToStore));
+        localStorage.setItem('recommendedTasks', tasksString);
       } else {
-        // Save to Capacitor Preferences for mobile
         await Preferences.set({
           key: 'recommendedTasks',
-          value: JSON.stringify(tasksToStore)
+          value: tasksString
         });
       }
     } catch (error) {
       console.error('Error saving recommended tasks:', error);
     }
-  };
+  }, [location, selectedDate, selectedTime, useCurrentWeather]);
 
-  // Updated helper function to load recommended tasks from storage
-  const loadRecommendedTasks = async () => {
-    try {
-      let storedTasks;
-      if (typeof window !== "undefined") {
-        // Load from localStorage for web
-        storedTasks = localStorage.getItem('recommendedTasks');
-      } else {
-        // Load from Capacitor Preferences for mobile
-        const { value } = await Preferences.get({ key: 'recommendedTasks' });
-        storedTasks = value;
-      }
-
-      if (storedTasks) {
-        return JSON.parse(storedTasks);
-      }
-    } catch (error) {
-      console.error('Error loading recommended tasks:', error);
-    }
-    return null;
-  };
-
-  // Update handleSeeMore to use stored context if current data is incomplete
-  const handleSeeMore = async () => {
-    let queryParams = {
-      location: JSON.stringify(location),
-      selectedDate,
-      selectedTime,
-      useCurrentWeather: JSON.stringify(useCurrentWeather),
-    };
-
-    // If current weather data is available, use it
-    if (useCurrentWeather && currentWeatherData) {
-      queryParams.weatherData = JSON.stringify(currentWeatherData);
-    } 
-    // Otherwise, try to load stored context
-    else {
-      const storedContext = await loadRecommendationContext();
-      if (storedContext) {
-        queryParams = {
-          location: JSON.stringify(storedContext.location),
-          selectedDate: storedContext.selectedDate,
-          selectedTime: storedContext.selectedTime,
-          useCurrentWeather: JSON.stringify(storedContext.useCurrentWeather),
-          weatherData: storedContext.weatherData ? JSON.stringify(storedContext.weatherData) : undefined
-        };
-      }
-    }
-
-    router.push({
-      pathname: '/dashboard/dashboardcomp/AllRecommended/AllRecommendedTasksPage',
-      query: queryParams,
-    });
-  };
-
+  // Fetch tasks data
   useEffect(() => {
+    if (isTimeRestricted(selectedTime)) {
+      setIsLoading(false);
+      setRecommendedTasks([]);  // Clear any previous recommendations
+      return;
+    }
+
     const fetchTasks = async () => {
       setIsLoading(true);
       try {
@@ -251,54 +161,105 @@ const RecommendedTask = ({ weatherData, currentWeatherData, useCurrentWeather, l
     };
 
     fetchTasks();
-  }, []);
+  }, [selectedTime]); // Depend on selectedTime to trigger this useEffect
 
-  // Load recommended tasks from storage if available
-  useEffect(() => {
-    const loadTasks = async () => {
-      const storedTasks = await loadRecommendedTasks();
-      if (storedTasks) {
-        setRecommendedTasks(storedTasks);
-      }
-    };
-    loadTasks();
-  }, []);
-
-  const effectiveWeatherData = useCurrentWeather ? currentWeatherData : weatherData;
-  const weather = useMemo(() => extractWeatherData(effectiveWeatherData), [effectiveWeatherData]);
+  // Process weather data and update recommendations
+  const processedWeather = useMemo(() => {
+    const effectiveWeatherData = useCurrentWeather ? currentWeatherData : weatherData;
+    return extractWeatherData(effectiveWeatherData);
+  }, [useCurrentWeather, currentWeatherData, weatherData]);
 
   useEffect(() => {
-    if (!weather || !tasksData.length) return;
+    if (isTimeRestricted(selectedTime) || !processedWeather || !tasksData.length) return;
 
-    const matchingTasks = tasksData.filter((task) => evaluateTask(task, weather));
-
-    // Log the matching tasks to the console
-    console.log('Matching Tasks:', matchingTasks);
-
-    // Save tasks and context
+    const matchingTasks = tasksData.filter((task) => evaluateTask(task, processedWeather));
+    
     setRecommendedTasks(matchingTasks);
-    saveRecommendedTasks(matchingTasks);
-    saveRecommendationContext({
+    memoizedSaveRecommendedTasks(matchingTasks);
+    
+    const context = {
       location,
       selectedDate,
       selectedTime,
       useCurrentWeather,
       weatherData: useCurrentWeather ? currentWeatherData : weatherData,
       tasks: matchingTasks
-    });
-  }, [weather, tasksData]);
+    };
+    
+    saveRecommendationContext(context);
+  }, [
+    processedWeather,
+    tasksData,
+    memoizedSaveRecommendedTasks,
+    saveRecommendationContext,
+    location,
+    selectedDate,
+    selectedTime,
+    useCurrentWeather,
+    currentWeatherData,
+    weatherData
+  ]);
 
-  const handleTaskClick = (task) => {
+  const handleTaskClick = useCallback((task) => {
     setSelectedTask(task);
-  };
+  }, []);
 
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setSelectedTask(null);
-  };
+  }, []);
+
+  const handleSeeMore = useCallback(async () => {
+    try {
+      // Get stored context
+      let storedContext;
+      if (typeof window !== "undefined") {
+        const contextString = localStorage.getItem('recommendationContext');
+        storedContext = contextString ? JSON.parse(contextString) : null;
+      } else {
+        const { value } = await Preferences.get({ key: 'recommendationContext' });
+        storedContext = value ? JSON.parse(value) : null;
+      }
+
+      // Use stored context or current props
+      const navigationData = storedContext || {
+        location,
+        selectedDate,
+        selectedTime,
+        useCurrentWeather,
+        weatherData: useCurrentWeather ? currentWeatherData : weatherData
+      };
+
+      // Ensure we have the required data
+      if (!navigationData.location) {
+        throw new Error('Location data is missing');
+      }
+
+      // Store recommended tasks
+      localStorage.setItem('currentRecommendationData', JSON.stringify({
+        ...navigationData,
+        recommendedTasks
+      }));
+
+      // Navigate with query parameters
+      router.push({
+        pathname: '/dashboard/dashboardcomp/AllRecommended/AllRecommendedTasksPage',
+        query: {
+          location: navigationData.location,
+          selectedDate: navigationData.selectedDate,
+          selectedTime: navigationData.selectedTime,
+          useCurrentWeather: navigationData.useCurrentWeather,
+          weatherData: JSON.stringify(navigationData.weatherData)
+        }
+      });
+    } catch (error) {
+      console.error('Navigation error:', error);
+      // You might want to show an error message to the user here
+    }
+  }, [router, location, selectedDate, selectedTime, useCurrentWeather, currentWeatherData, weatherData, recommendedTasks]);
 
   const colors = ['#f5f5f5', '#e0f7fa', '#fff9c4', '#ffe0b2', '#f1f8e9'];
 
-  if (isLoading) {
+  if (isLoading && recommendedTasks.length === 0) {
     return (
       <Grid item xs={12} textAlign="center">
         <CircularProgress sx={{ color: '#48ccb4' }} />
@@ -315,8 +276,6 @@ const RecommendedTask = ({ weatherData, currentWeatherData, useCurrentWeather, l
         <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
           Recommended Tasks
         </Typography>
-  
-        {/* Conditionally render the 'See All' link only if there are recommended tasks */}
         {recommendedTasks.length > 0 && (
           <Typography
             variant="body1"
@@ -331,8 +290,8 @@ const RecommendedTask = ({ weatherData, currentWeatherData, useCurrentWeather, l
           </Typography>
         )}
       </Grid>
-  
-      <Grid container>
+
+      <Grid container spacing={1}>
         {recommendedTasks.length > 0 ? (
           recommendedTasks.slice(0, 3).map((task, index) => (
             <Grid item xs={12} sm={6} md={4} key={task.task_id}>
@@ -361,128 +320,49 @@ const RecommendedTask = ({ weatherData, currentWeatherData, useCurrentWeather, l
               sx={{
                 padding: '16px',
                 borderRadius: '12px',
-                backgroundColor: '#f5f5f5', // Light grey background
+                backgroundColor: '#f5f5f5',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 textAlign: 'center',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)', // Soft shadow
-                border: '1px solid rgba(0,0,0,0.08)', // Subtle border
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                border: '1px solid rgba(0,0,0,0.08)',
                 transition: 'transform 0.3s ease-in-out',
                 '&:hover': {
-                  transform: 'scale(1.02)', // Slight scale effect on hover
-                  boxShadow: '0 6px 8px rgba(0,0,0,0.15)' // Slightly enhanced shadow on hover
+                  transform: 'scale(1.02)',
+                  boxShadow: '0 6px 8px rgba(0,0,0,0.15)'
                 }
               }}
             >
               <Typography 
                 variant="body1" 
-                color="text.secondary"
                 sx={{
                   fontStyle: 'italic',
                   fontWeight: 500,
-                  color: '#666', // Softer text color
+                  color: '#666',
                   textAlign: 'center'
                 }}
               >
-                No tasks recommended based on the selected weather conditions.
+                No recommended tasks for this location or time.
               </Typography>
             </Paper>
           </Grid>
         )}
       </Grid>
 
-
-
-      <Dialog 
-        open={!!selectedTask} onClose={handleCloseModal}
-        maxWidth="sm"
-        fullWidth
-        sx={{
-          '& .MuiDialog-paper': {
-            borderRadius: 4,
-            background: 'transparent',
-            boxShadow: 'none'
-          }
-        }}
-      >
-      {selectedTask && (
-      <Paper 
-        elevation={6} 
-        sx={{
-          borderRadius: 4,
-          overflow: 'hidden',
-          background: 'linear-gradient(145deg, #E6F3E6 0%, #C5E1C5 100%)',
-        }}
-      >
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            p: 2,
-            background: 'linear-gradient(90deg, #2E8B57 0%, #3CB371 100%)',
-            color: 'white'
-          }}
-        >
-          <Typography variant="h6" fontWeight={600}>
-          {selectedTask.task_name}
-          </Typography>
-          <IconButton onClick={handleCloseModal} sx={{ color: 'white' }}>
-            <CloseIcon />
-          </IconButton>
-        </Box>
-        
-        <DialogContent sx={{ px: 3, py: 2 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <MapIcon sx={{ color: '#2E8B57' }} />
-              <Typography variant="body1" color="text.secondary">
-              {selectedTask.storedLocation || location}
-              </Typography>
-            </Box>
-            
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <EventIcon sx={{ color: '#2E8B57' }} />
-              <Typography variant="body1" color="text.secondary">
-              {selectedTask.storedDate || selectedDate}
-              </Typography>
-            </Box>
-            
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <AccessTimeIcon sx={{ color: '#2E8B57' }} />
-              <Typography variant="body1" color="text.secondary">
-              {dayjs(selectedTask.storedTime || selectedTime, 'HH:mm').format('h:mm A')}
-              </Typography>
-            </Box>
-          </Box>
-          
-          <Box mt={3}>
-            <Typography 
-              variant="body1" 
-              sx={{ 
-                color: 'text.primary',
-                background: 'rgba(255,255,255,0.7)',
-                borderRadius: 2,
-                p: 2,
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-              }}
-            >
-              {selectedTask.details}
-            </Typography>
-          </Box>
-        </DialogContent>
-      </Paper>
-       )}
-    </Dialog>
-
-
-
-
-
+      <TaskDetailsDialog
+        open={!!selectedTask}
+        task={selectedTask}
+        location={location}
+        selectedDate={selectedDate}
+        selectedTime={selectedTime}
+        onClose={handleCloseModal}
+      />
     </Grid>
   );
-  
 };
 
 export default RecommendedTask;
+
+
+

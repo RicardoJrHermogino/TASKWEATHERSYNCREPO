@@ -20,8 +20,6 @@ import {
   MenuItem,
   Stack
 } from '@mui/material';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CancelIcon from '@mui/icons-material/Cancel';
 import dayjs from 'dayjs';
 import { locationCoordinates } from '@/utils/locationCoordinates';
 import axios from 'axios';
@@ -48,6 +46,9 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
   const [resultMessage, setResultMessage] = useState('');
   const [isFeasible, setIsFeasible] = useState(false);
   const [resultOpen, setResultOpen] = useState(false);
+  const [lastForecastDate, setLastForecastDate] = useState(null);
+  const [availableTimes, setAvailableTimes] = useState([]);
+  const [lastForecastDateTime, setLastForecastDateTime] = useState(null);
   const [feasibilityResult, setFeasibilityResult] = useState({
     isFeasible: false,
     message: ''
@@ -56,6 +57,57 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [offlineDialogOpen, setOfflineDialogOpen] = useState(!navigator.onLine);
 
+  // In the fetchAvailableTimes function, add:
+  const getLastAvailableDateTime = (forecastData) => {
+    const lastRecord = forecastData.reduce((latest, record) => {
+      const recordDateTime = dayjs(`${record.date} ${record.time}`);
+      return !latest || recordDateTime.isAfter(latest) ? recordDateTime : latest;
+    }, null);
+    return lastRecord;
+  };
+
+  const fetchAvailableTimes = async () => {
+    try {
+      const response = await axios.get('/api/getWeatherData');
+      const forecastData = response.data;
+
+      const lastDateTime = getLastAvailableDateTime(forecastData);
+      setLastForecastDateTime(lastDateTime);
+
+      
+      
+      // Group data by date
+      const dateGroups = forecastData.reduce((acc, record) => {
+        const date = dayjs(record.date).format('YYYY-MM-DD');
+        if (!acc[date]) {
+          acc[date] = [];
+        }
+        // Format time consistently
+        const formattedTime = dayjs(record.time, 'HH:mm:ss').format('HH:mm');
+        if (!acc[date].includes(formattedTime)) {
+          acc[date].push(formattedTime);
+        }
+        return acc;
+      }, {});
+
+      // Find the last date in the forecast
+      const dates = Object.keys(dateGroups).sort();
+      const lastDate = dates[dates.length - 1];
+      
+      console.log('Last available date:', lastDate);
+      console.log('Available times for last date:', dateGroups[lastDate]);
+      
+      setLastForecastDate(lastDate);
+      setAvailableTimes(dateGroups[lastDate] || []);
+    } catch (error) {
+      console.error('Error fetching available times:', error);
+      toast.error('Failed to fetch available time slots');
+    }
+  };
+
+  useEffect(() => {
+    fetchAvailableTimes();
+  }, []);
 
   useEffect(() => {
     const handleOnline = () => {
@@ -79,28 +131,7 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
     };
   }, []);
 
-  const getDeviceId = async () => {
-    try {
-      // Try to get the existing userId from Preferences
-      const { value: userId } = await Preferences.get({ key: 'userId' });
-      
-      if (userId) {
-        return userId;
-      } else {
-        // If no userId exists, generate a new one
-        const newUserId = getOrCreateUUID();
-        await Preferences.set({
-          key: 'userId',
-          value: newUserId,
-        });
-        return newUserId;
-      }
-    } catch (error) {
-      console.error('Error getting device ID:', error);
-      // Fallback to generating a new UUID if there's an error
-      return getOrCreateUUID();
-    }
-  };
+
 
    // Fetch tasks for the form
    const fetchTasks = async () => {
@@ -125,10 +156,21 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
     fetchTasks();
   }, []);
 
-  const dateOptions = Array.from({ length: 6 }, (_, index) => ({
-    label: dayjs().add(index, 'day').format('dddd, MM/DD/YYYY'),
-    value: dayjs().add(index, 'day')
-  }));
+  const dateOptions = Array.from({ length: 6 }, (_, index) => {
+    const now = dayjs();
+    const currentHour = now.hour();
+    const isLateNight = currentHour >= 19 || currentHour <= 2; // Between 7 PM and 2 AM
+    const isToday = index === 0; // First date option is today
+  
+    if (isLateNight && isToday) {
+      return null; // Exclude the current date during late-night hours
+    }
+  
+    return {
+      label: now.add(index, 'day').format('dddd, MM/DD/YYYY'),
+      value: now.add(index, 'day'),
+    };
+  }).filter(Boolean); // Remove null values
 
   const createTimeIntervals = (date) => {
     const timeIntervals = ['03:00', '06:00', '09:00', '12:00', '15:00', '18:00'];
@@ -147,6 +189,54 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
     });
   };
 
+  // Add this useEffect to fetch available times when component mounts
+  useEffect(() => {
+    if (isOnline) {
+      fetchAvailableTimes();
+    }
+  }, [isOnline]);
+
+ // Add this useEffect to reset time when date changes
+ useEffect(() => {
+  setSelectedTime(''); // Reset time whenever date changes
+}, [selectedDate]);
+
+// Update the getTimeOptions function to handle disabled states
+const getTimeOptions = () => {
+  const standardTimes = ['Now', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00'];
+  const isToday = selectedDate === dayjs().format('YYYY-MM-DD');
+  
+  return standardTimes.map((time) => {
+    const isLastForecastDate = selectedDate === lastForecastDate;
+    
+    // Check if the time is unavailable for the last forecast date
+    const isUnavailableOnLastDate = isLastForecastDate && 
+      time !== 'Now' && 
+      !availableTimes.includes(time);
+
+    // Check if it's a past time on today's date
+    const isPastTime = isToday && 
+      time !== 'Now' && 
+      dayjs(`${selectedDate} ${time}`).isBefore(dayjs());
+
+    // Disable "Now" if not today
+    const isNowDisabled = time === 'Now' && !isToday;
+
+    const isDisabled = isPastTime || isUnavailableOnLastDate || isNowDisabled;
+    
+    return (
+      <MenuItem 
+        key={time} 
+        value={time}
+        disabled={isDisabled}
+      >
+        {time === 'Now' ? 'Now' : dayjs(`2024-01-01 ${time}`).format('hh:mm A')}
+      </MenuItem>
+    );
+  });
+};
+
+
   const fetchWeatherData = async (selectedTime, selectedDate, selectedLocation) => {
     try {
       const isToday = selectedDate === dayjs().format('YYYY-MM-DD');
@@ -164,6 +254,8 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
         : `https://api.openweathermap.org/data/2.5/weather?lat=${coordinates.lat}&lon=${coordinates.lon}&appid=${apiKey}&units=metric`;
     
       const response = await axios.get(url);
+    
+      console.log("Weather Data Response:", response.data);  // Log the entire weather data response
     
       if (!Array.isArray(response.data)) {
         return response.data;
@@ -187,7 +279,9 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
         setResultOpen(true);
         return;
       }
-  
+
+      console.log("Selected Weather Record:", weatherRecord);  // Log the selected weather record
+
       return weatherRecord;
     } catch (error) {
       console.error("Error fetching weather data:", error);
@@ -270,7 +364,6 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
   
-    const deviceId = await getDeviceId();
   
     if (dayjs(selectedDate).isAfter(dayjs(), 'day') && selectedTime === 'Now') {
       toast.error("You cannot select 'Now' for a future date. Please choose a specific time.");
@@ -311,7 +404,9 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
         setResultOpen(true);
         return;
       }
-  
+
+      console.log("Selected Task Data:", task);  // Log the selected task data
+
       const isFeasible = evaluateFeasibility(normalizedForecast, task);
       setIsFeasible(isFeasible);
       setResultMessage(
@@ -328,7 +423,7 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
       setIsFeasible(false);
       setResultOpen(true);
     }
-  };
+};
   
   const renderOfflineDialog = () => (
     <Dialog 
@@ -474,7 +569,7 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
             {/* Separate Date and Time into their own rows */}
             <Grid item xs={12}>
               <FormControl fullWidth>
-                <InputLabel>Select  Date</InputLabel>
+                <InputLabel>Select Date</InputLabel>
                 <Select
                   value={selectedDate}
                   label="Date"
@@ -483,33 +578,36 @@ const CheckTaskFeasibilityPage = ({ open, handleClose }) => {
                 >
                   {Array.from({ length: 6 }, (_, index) => {
                     const date = dayjs().add(index, 'day');
+                    const isAfterLastForecast = date.isAfter(dayjs(lastForecastDateTime));
+                    if (isAfterLastForecast) return null;
+                    
                     return (
-                      <MenuItem key={date.format('YYYY-MM-DD')} value={date.format('YYYY-MM-DD')}>
+                      <MenuItem 
+                        key={date.format('YYYY-MM-DD')} 
+                        value={date.format('YYYY-MM-DD')}
+                      >
                         {date.format('dddd, MMMM D, YYYY')}
                       </MenuItem>
                     );
-                  })}
+                  }).filter(Boolean)}
                 </Select>
               </FormControl>
-            </Grid>
+          </Grid>
 
+            {/* Update the time options generation */}
             <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel> Select Time</InputLabel>
-                <Select
-                  value={selectedTime}
-                  label="Time"
-                  onChange={(e) => setSelectedTime(e.target.value)}
-                  size="medium"
-                >
-                  {['Now', '06:00', '09:00', '12:00', '15:00', '18:00'].map((time) => (
-                    <MenuItem key={time} value={time}>
-                      {time === 'Now' ? 'Now' : dayjs(`2024-01-01 ${time}`).format('hh:mm A')}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
+            <FormControl fullWidth>
+              <InputLabel>Select Time</InputLabel>
+              <Select
+                value={selectedTime}
+                label="Time"
+                onChange={(e) => setSelectedTime(e.target.value)}
+                size="medium"
+              >
+                {getTimeOptions()}
+              </Select>
+            </FormControl>
+          </Grid>
           </Grid>
 
 

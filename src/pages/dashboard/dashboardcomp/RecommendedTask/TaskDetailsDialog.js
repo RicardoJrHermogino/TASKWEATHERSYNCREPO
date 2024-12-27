@@ -5,16 +5,31 @@ import {
   Typography, 
   Box,
   IconButton,
-  Paper
+  Paper,
+  Divider
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import MapIcon from '@mui/icons-material/Map';
 import EventIcon from '@mui/icons-material/Event';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import ThermostatIcon from '@mui/icons-material/Thermostat';
+import WaterDropIcon from '@mui/icons-material/WaterDrop';
+import CloudIcon from '@mui/icons-material/Cloud';
+import AirIcon from '@mui/icons-material/Air';
+import CompressIcon from '@mui/icons-material/Compress';
 import dayjs from 'dayjs';
 
 const TaskDetailsDialog = ({ open, task, location, selectedDate, selectedTime, onClose }) => {
   if (!task) return null;
+
+  const WeatherRequirement = ({ icon, label, value, unit }) => (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+      {icon}
+      <Typography variant="body2" color="text.secondary">
+        {label}: <span className="font-medium">{value} {unit}</span>
+      </Typography>
+    </Box>
+  );
 
   return (
     <Dialog 
@@ -79,7 +94,7 @@ const TaskDetailsDialog = ({ open, task, location, selectedDate, selectedTime, o
               </Typography>
             </Box>
           </Box>
-          
+
           <Box mt={3}>
             <Typography 
               variant="body1" 
@@ -94,6 +109,62 @@ const TaskDetailsDialog = ({ open, task, location, selectedDate, selectedTime, o
               {task.details}
             </Typography>
           </Box>
+
+          <Divider sx={{ my: 3 }} />
+
+          <Box>
+            <Typography variant="subtitle1" fontWeight={600} mb={2} color="#2E8B57">
+              Weather Requirements
+            </Typography>
+            <Box 
+              sx={{ 
+                display: 'grid', 
+                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+                gap: 2,
+                background: 'rgba(255,255,255,0.7)',
+                borderRadius: 2,
+                p: 2,
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+              }}
+            >
+              <WeatherRequirement 
+                icon={<ThermostatIcon sx={{ color: '#2E8B57' }} />}
+                label="Temperature"
+                value={`${task.requiredTemperature_min} - ${task.requiredTemperature_max}`}
+                unit="°C"
+              />
+              <WeatherRequirement 
+                icon={<WaterDropIcon sx={{ color: '#2E8B57' }} />}
+                label="Humidity"
+                value={`${task.idealHumidity_min} - ${task.idealHumidity_max}`}
+                unit="%"
+              />
+              <WeatherRequirement 
+                icon={<CompressIcon sx={{ color: '#2E8B57' }} />}
+                label="Pressure"
+                value={`${task.requiredPressure_min} - ${task.requiredPressure_max}`}
+                unit="hPa"
+              />
+              <WeatherRequirement 
+                icon={<AirIcon sx={{ color: '#2E8B57' }} />}
+                label="Wind Speed"
+                value={`≤ ${task.requiredWindSpeed_max}`}
+                unit="m/s"
+              />
+              <WeatherRequirement 
+                icon={<AirIcon sx={{ color: '#2E8B57' }} />}
+                label="Wind Gust"
+                value={`≤ ${task.requiredWindGust_max}`}
+                unit="m/s"
+              />
+              <WeatherRequirement 
+                icon={<CloudIcon sx={{ color: '#2E8B57' }} />}
+                label="Cloud Cover"
+                value={`≤ ${task.requiredCloudCover_max}`}
+                unit="%"
+              />
+            </Box>
+          </Box>
         </DialogContent>
       </Paper>
     </Dialog>
@@ -101,4 +172,3 @@ const TaskDetailsDialog = ({ open, task, location, selectedDate, selectedTime, o
 };
 
 export default TaskDetailsDialog;
-

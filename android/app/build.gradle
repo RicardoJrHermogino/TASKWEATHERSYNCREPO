@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.taskweathersync.app"
+    namespace "com.example.taskweathersync"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.taskweathersync.app"
+        applicationId "com.example.taskweathersync"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

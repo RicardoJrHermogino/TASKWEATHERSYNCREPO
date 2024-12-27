@@ -1,4 +1,3 @@
-// File: components/IntervalWeatherSummary.tsx
 import React from 'react';
 import { 
   Grid, 
@@ -15,7 +14,8 @@ import { WeatherIcon } from './WeatherIcon';
 
 export const IntervalWeatherSummary = ({ 
   interval, 
-  getDifficultyColor 
+  getDifficultyColor,
+  onTaskClick // Add this prop
 }) => {
   return (
     <>
@@ -89,6 +89,14 @@ export const IntervalWeatherSummary = ({
           <Paper 
             key={taskIndex} 
             elevation={0} 
+            onClick={() => onTaskClick(task)}
+            role="button"
+            tabIndex={0}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                onTaskClick(task);
+              }
+            }}
             sx={{ 
               p: 2, 
               mb: 2, 
@@ -96,7 +104,18 @@ export const IntervalWeatherSummary = ({
               justifyContent: 'space-between', 
               alignItems: 'center',
               backgroundColor: '#FFFFFF',
-              border: '1px solid rgba(0,0,0,0.08)'
+              border: '1px solid rgba(0,0,0,0.08)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease-in-out',
+              '&:hover': {
+                backgroundColor: '#F5F5F5',
+                transform: 'translateY(-1px)',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+              },
+              '&:focus': {
+                outline: 'none',
+                boxShadow: '0 0 0 2px #007AFF',
+              }
             }}
           >
             <Box>
@@ -109,6 +128,13 @@ export const IntervalWeatherSummary = ({
               <Typography 
                 variant="body2" 
                 color="text.secondary"
+                sx={{
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}
               >
                 {task.description}
               </Typography>
@@ -123,7 +149,9 @@ export const IntervalWeatherSummary = ({
               size="small" 
               sx={{ 
                 fontWeight: 500,
-                borderRadius: 2
+                borderRadius: 2,
+                ml: 2,
+                flexShrink: 0
               }} 
             />
           </Paper>
@@ -132,3 +160,5 @@ export const IntervalWeatherSummary = ({
     </>
   );
 };
+
+export default IntervalWeatherSummary;

@@ -1,9 +1,9 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.taskweathersync.app',
+  appId: 'com.example.taskweathersync',
   appName: 'taskweathersync-app',
-  webDir: 'public'
+  webDir: 'out', 
 };
 
 export default config;

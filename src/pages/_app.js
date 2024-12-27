@@ -10,7 +10,7 @@ import { useState, useEffect } from 'react';
 function ErrorFallback({ error, resetErrorBoundary }) {
   return (
     <div role="alert" className="flex flex-col items-center justify-center min-h-screen bg-red-50 p-4">
-      <h1 className="text-2xl font-bold text-red-600 mb-4">Oops! Something went wrong</h1>
+      <h1 className="text-2xl font-bold text-red-600 mb-4">Something went wrong. Please try again later</h1>
       <p className="text-red-500 mb-4">{error.message || 'An unexpected error occurred'}</p>
       <button 
         onClick={resetErrorBoundary}

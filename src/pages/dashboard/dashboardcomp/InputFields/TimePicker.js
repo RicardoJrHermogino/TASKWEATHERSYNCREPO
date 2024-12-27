@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+// TimePicker.js
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Select, MenuItem, Grid, InputLabel, FormControl, OutlinedInput, InputAdornment } from '@mui/material';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import dayjs from 'dayjs';
@@ -9,19 +10,18 @@ const CustomTimePicker = ({
   setSelectedTime,
   selectedDate,
   MenuProps,
-  setHasInteractedWithTime 
+  setHasInteractedWithTime,
 }) => {
-  // Predefined time intervals in 24-hour format
-  const timeIntervals = ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'];
   const [availableTimes, setAvailableTimes] = useState([]);
   const [lastAvailableDate, setLastAvailableDate] = useState(null);
 
-  // Function to convert 24-hour time to AM/PM format
-  const convertToAMPM = (time) => {
-    return dayjs(time, 'HH:mm').format('hh:mm A');
-  };
 
-  // Get the current date and time
+  
+  const timeIntervals = useMemo(() => [
+    '00:00', '03:00', '06:00', '09:00', 
+    '12:00', '15:00', '18:00', '21:00'
+  ], []); // Move timeIntervals inside useMemo
+
   const currentDateTime = dayjs();
   const currentDate = currentDateTime.format('YYYY-MM-DD');
 
@@ -32,64 +32,61 @@ const CustomTimePicker = ({
         const response = await axios.get('/api/getWeatherData');
         const forecastData = response.data;
 
-        // Find the last forecasted date
         const lastDate = forecastData[forecastData.length - 1]?.date;
         setLastAvailableDate(lastDate);
 
-        // Get times for the last date, converting to HH:00 format
         const timesForLastDate = forecastData
           .filter((item) => item.date === lastDate)
           .map((item) => dayjs(item.time, 'HH:mm:ss').format('HH:00'));
 
         setAvailableTimes(timesForLastDate);
       } catch (error) {
-        console.error("Error fetching available time intervals:", error);
+        console.error('Error fetching available time intervals:', error);
       }
     };
 
     fetchAvailableTimeIntervals();
   }, []);
 
-  // When the date changes, reset the time if it becomes invalid
-  useEffect(() => {
-    // Check if the currently selected time is invalid for the new date
-    const selectedTimeData = availableTimeIntervals.find(item => item.time === selectedTime);
-    
-    if (selectedTimeData && selectedTimeData.isDisabled) {
-      // Reset the time if it's disabled
-      setSelectedTime('');
-      setHasInteractedWithTime(false);
-    }
-  }, [selectedDate, availableTimes, lastAvailableDate]);
-
-  // Filter times based on whether the selected date is today or the last available date
-  const availableTimeIntervals = timeIntervals.map((time) => {
+// Memoize available time intervals
+const availableTimeIntervals = useMemo(() => {
+  return timeIntervals.map((time) => {
     const fullTime = dayjs(`${selectedDate} ${time}`, 'YYYY-MM-DD HH:mm');
-
-    // Disable past times only if the selected date is today
     const isPastTime = selectedDate === currentDate && fullTime.isBefore(currentDateTime);
-
-    // Disable times not in the availableTimes array if the selected date is the last forecasted date
     const isUnavailableForLastDate =
-      selectedDate === lastAvailableDate &&
-      !availableTimes.includes(time);
+      selectedDate === lastAvailableDate && !availableTimes.includes(time);
 
     return {
       time,
-      isDisabled: isPastTime || isUnavailableForLastDate
+      isDisabled: isPastTime || isUnavailableForLastDate,
     };
   });
+}, [timeIntervals, selectedDate, currentDate, currentDateTime, lastAvailableDate, availableTimes]);
+
+  // Reset the selected time if it becomes invalid
+  useEffect(() => {
+    const selectedTimeData = availableTimeIntervals.find((item) => item.time === selectedTime);
+    if (selectedTimeData && selectedTimeData.isDisabled) {
+      setSelectedTime('');
+      setHasInteractedWithTime(false);
+    }
+  }, [selectedDate, availableTimeIntervals, selectedTime, setSelectedTime, setHasInteractedWithTime]);
 
   // Handle change of selected time
-  const handleTimeChange = (e) => {
-    const newTime = e.target.value;
-    const selectedTimeData = availableTimeIntervals.find(item => item.time === newTime);
-  
-    if (selectedTimeData && !selectedTimeData.isDisabled) {
-      setSelectedTime(newTime);
-      setHasInteractedWithTime(true);
-    }
-  };
+  const handleTimeChange = useCallback(
+    (e) => {
+      const newTime = e.target.value;
+      const selectedTimeData = availableTimeIntervals.find((item) => item.time === newTime);
+
+      if (selectedTimeData && !selectedTimeData.isDisabled) {
+        setSelectedTime(newTime);
+        setHasInteractedWithTime(true);
+      }
+    },
+    [availableTimeIntervals, setSelectedTime, setHasInteractedWithTime],
+  );
+
+  const convertToAMPM = (time) => dayjs(time, 'HH:mm').format('hh:mm A');
 
   return (
     <Grid item xs={12} sm={12} align="center">

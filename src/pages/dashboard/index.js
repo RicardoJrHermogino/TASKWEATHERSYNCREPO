@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { Grid, Button, CircularProgress, Typography, CssBaseline, IconButton, Badge, Drawer, Divider } from "@mui/material";
+import Image from 'next/image';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import dayjs from "dayjs";
 import Navbar from "../components/navbar";
@@ -16,8 +18,9 @@ import { locationCoordinates } from "../../utils/locationCoordinates";
 import toast, { Toaster } from 'react-hot-toast';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import CloseIcon from '@mui/icons-material/Close'; 
-import NotificationDrawer from './dashboardcomp/NotificationDrawer';
+import NotificationDrawer from './dashboardcomp/NotificationSection/NotificationDrawer';
 import { useLocation } from '@/utils/LocationContext'; // Import the custom hook
+import SkeletonLoader from './dashboardcomp/SkeletonLoader';
 
 
 const Dashboard = () => {
@@ -49,8 +52,6 @@ const Dashboard = () => {
   const [isOnline, setIsOnline] = useState(true);
   const router = useRouter();
 
-  
-
 
   const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY; 
 
@@ -71,10 +72,8 @@ const Dashboard = () => {
   }
 };
 
-  const showErrorToast = (message) => {
+   const showErrorToast = useCallback((message) => {
     const currentTime = Date.now();
-    
-    // Check if enough time has passed since the last toast
     if (currentTime - lastToastTime > TOAST_COOLDOWN) {
       toast.error(message, {
         duration: 4000,
@@ -84,15 +83,13 @@ const Dashboard = () => {
           boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
         },
       });
-      
-      // Update the last toast time
       setLastToastTime(currentTime);
     }
-  };
+  }, [lastToastTime]); // Add lastToastTime as dependency
 
 
+  // Update the useEffect with network status checking
   useEffect(() => {
-    // Check initial online status
     const checkOnlineStatus = () => {
       setIsOnline(navigator.onLine);
       if (!navigator.onLine) {
@@ -100,29 +97,26 @@ const Dashboard = () => {
       }
     };
 
-        // Network status change handlers
-        const handleOnline = () => {
-          setIsOnline(true);
-        };
-    
-        const handleOffline = () => {
-          setIsOnline(false);
-          router.push('/offline');
-        };
-    
-        // Add event listeners
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
-    
-        // Initial check
-        checkOnlineStatus();
-    
-        // Cleanup listeners
-        return () => {
-          window.removeEventListener('online', handleOnline);
-          window.removeEventListener('offline', handleOffline);
-        };
-      }, [router]);
+    const handleOnline = () => {
+      setIsOnline(true);
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      router.push('/offline');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    checkOnlineStatus();
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [router, showErrorToast]); // Include both router and showErrorToast
+
 
   // Fetch current weather data based on the user's location
   const fetchCurrentWeatherData = async (lat, lon) => {
@@ -136,6 +130,7 @@ const Dashboard = () => {
     const apiUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
     
     try {
+      await new Promise(resolve => setTimeout(resolve, 500));
       const currentWeatherResponse = await axios.get(apiUrl);
       const currentWeather = currentWeatherResponse.data;
       
@@ -165,6 +160,7 @@ const Dashboard = () => {
     setIsCurrentWeather(false);
   
     try {
+      await new Promise(resolve => setTimeout(resolve, 500));
       const response = await axios.get('/api/getWeatherData');
       const forecastData = response.data;
       
@@ -317,22 +313,21 @@ const Dashboard = () => {
       try {
         const response = await axios.get('/api/getWeatherData');
         const forecastData = response.data;
-  
-        // Find the last forecasted date
+
         const lastDate = forecastData[forecastData.length - 1]?.date;
         const timesForLastDate = forecastData
-              .filter((item) => item.date === lastDate)
-              .map((item) => dayjs(item.time, 'HH:mm:ss').format('HH:00'));  // Convert to HH:00 format
-  
-        setAvailableForecastTimes(timesForLastDate); // Set the available times for the last date
+          .filter((item) => item.date === lastDate)
+          .map((item) => dayjs(item.time, 'HH:mm:ss').format('HH:00'));
+
+        setAvailableForecastTimes(timesForLastDate);
       } catch (error) {
         console.error("Error fetching initial forecast data:", error);
         showErrorToast("Failed to fetch initial forecast data.");
       }
     };
-  
+
     fetchInitialForecastData();
-  }, []);
+  }, [showErrorToast]); // Add showErrorToast as dependency
   
 
   return (
@@ -343,17 +338,18 @@ const Dashboard = () => {
         {/* Header with Logo */}
         <Grid item xs={8} sm={6}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <img 
+            <Image 
               src="/image/twslogo.png" 
               alt="TaskWeatherSync Logo" 
-              style={{ width: '55px', height: '55px', marginRight: '10px' }} 
+              style={{ marginRight: '10px' }} 
+              width={55} height={55}
             />
             <Typography variant="body1"><strong>TaskWeatherSync</strong></Typography>
           </div>
         </Grid>
 
         {/* Notification Icon */}
-        <Grid item xs={4} sm={6} sx={{ textAlign: 'right' }}>
+        {/* <Grid item xs={4} sm={6} sx={{ textAlign: 'right' }}>
           <IconButton 
             sx={{ border: '1px solid lightgray', borderRadius: '20px', width: '56px', height: '56px', backgroundColor: 'white' }}
             onClick={() => setNotificationDrawerOpen(true)}
@@ -362,7 +358,7 @@ const Dashboard = () => {
               <NotificationsIcon sx={{ fontSize: '25px', color: 'black' }} />
             </Badge>
           </IconButton>
-        </Grid>
+        </Grid> */}
 
         {/* Button to Open Drawer */}
         <Grid item xs={12}>
@@ -391,33 +387,45 @@ const Dashboard = () => {
 
         {/* Greeting Message */}
         <Grid item xs={12}>
-          <Typography variant="body2" color="#757575">
-            {greetingMessage}, <strong>Coconut Farmer!</strong>
-          </Typography>
+        <Typography variant="body2" color="#757575">
+          {greetingMessage}, <strong>Coconut Farmer&apos;s!</strong>
+        </Typography>
+
           <Typography letterSpacing={4}></Typography>
         </Grid>
 
         {/* Weather Display Component */}
         
-        <WeatherDisplay 
-          temperature={temperature} 
-          weatherCondition={weatherId} 
-          location={submittedLocation}
-          selectedLocation={submittedLocation}
-          selectedDate={submittedDate}
-          selectedTime={submittedTime}
-          weatherData={weatherData}
-        />
-
-        {/* Recommended Task Component */}
-        <RecommendedTask 
-          weatherData={weatherData} 
-          currentWeatherData={currentWeatherData} 
-          useCurrentWeather={isCurrentWeather}
-          location={submittedLocation}
-          selectedDate={submittedDate}
-          selectedTime={submittedTime}
-        />
+        {/* Weather Display and Recommended Task Components */}
+          {loading ? (
+            <Grid item xs={12}>
+              <SkeletonLoader />
+            </Grid>
+          ) : (
+            <>
+              <Grid item xs={12}>
+                <WeatherDisplay 
+                  temperature={temperature} 
+                  weatherCondition={weatherId} 
+                  location={submittedLocation}
+                  selectedLocation={submittedLocation}
+                  selectedDate={submittedDate}
+                  selectedTime={submittedTime}
+                  weatherData={weatherData}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <RecommendedTask 
+                  weatherData={weatherData} 
+                  currentWeatherData={currentWeatherData} 
+                  useCurrentWeather={isCurrentWeather}
+                  location={submittedLocation}
+                  selectedDate={submittedDate}
+                  selectedTime={submittedTime}
+                />
+              </Grid>
+            </>
+          )}
       </Grid>
 
       {/* Drawer Component for Location, Date, Time */}
@@ -484,7 +492,7 @@ const Dashboard = () => {
                 },
               }}
             >
-              Check Today's Weather
+              Check Today&apos;s Weather
             </Button>
           </Grid>
         </Grid>

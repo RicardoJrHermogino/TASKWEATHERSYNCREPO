@@ -1,4 +1,3 @@
-// File: components/WeatherIcon.tsx
 import React from 'react';
 import { Box } from '@mui/material';
 import { 
@@ -6,7 +5,7 @@ import {
   WaterDrop as HumidityIcon, 
   Air as WindIcon, 
   WbCloudy as CloudIcon,
-  WbTornado as ThunderstormIcon,
+  Thunderstorm as ThunderstormIcon,  // Updated to use Thunderstorm icon
   AcUnit as SnowIcon,
   CloudCircle as AtmosphereIcon
 } from '@mui/icons-material';
@@ -29,3 +28,6 @@ export const WeatherIcon = ({ weatherId }) => {
     </Box>
   );
 };
+
+
+export default WeatherIcon;

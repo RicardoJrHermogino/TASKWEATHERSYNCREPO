@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Grid, Typography } from '@mui/material';
@@ -12,45 +12,6 @@ const WeatherMap = () => {
   const mapInstance = useRef(null); // Ref for the map instance
   const markersRef = useRef([]); // Ref to track markers for cleanup
   const isMounted = useRef(true); // Ref to check component mounting status
-
-  useEffect(() => {
-    // Set mounted flag
-    isMounted.current = true;
-
-    // Initialize Mapbox
-    mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
-    const mapContainer = document.getElementById('weather-map');
-
-    if (!mapContainer) return;
-
-    const newMap = new mapboxgl.Map({
-      container: mapContainer,
-      style: 'mapbox://styles/mapbox/streets-v11', // You can change this to another style
-      center: [123.9894, 12.8477], // Example center point
-      zoom: 8,
-    });
-
-    mapInstance.current = newMap;
-
-    newMap.on('load', () => {
-      if (isMounted.current) {
-        newMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
-        addOpenWeatherMapLayer(newMap); // Add OpenWeatherMap Layer
-        fetchWeatherDataAndAddMarkers(); // Fetch weather and add markers
-      }
-    });
-
-    // Cleanup function to remove markers and map
-    return () => {
-      isMounted.current = false;
-      markersRef.current.forEach(marker => marker.remove());
-      markersRef.current = [];
-      if (mapInstance.current) {
-        mapInstance.current.remove();
-        mapInstance.current = null;
-      }
-    };
-  }, []);
 
   // Function to create a custom weather icon for markers
   const createWeatherIcon = (iconUrl, temp, description) => {
@@ -99,8 +60,8 @@ const WeatherMap = () => {
     });
   };
 
-  // Fetch weather data and add markers
-  const fetchWeatherDataAndAddMarkers = async () => {
+  // Memoized fetchWeatherDataAndAddMarkers function to avoid unnecessary re-creations
+  const fetchWeatherDataAndAddMarkers = useCallback(async () => {
     if (!mapInstance.current || !isMounted.current) return;
 
     try {
@@ -162,8 +123,44 @@ const WeatherMap = () => {
         console.error('Error fetching weather data:', error);
       }
     }
-  };
+  }, []);  // Memoizing the function with useCallback to prevent unnecessary re-creation.
 
+  useEffect(() => {
+    // Initialize Mapbox
+    mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
+    const mapContainer = document.getElementById('weather-map');
+  
+    if (!mapContainer) return;
+  
+    const newMap = new mapboxgl.Map({
+      container: mapContainer,
+      style: 'mapbox://styles/mapbox/streets-v11', // You can change this to another style
+      center: [123.9894, 12.8477], // Example center point
+      zoom: 8,
+    });
+  
+    mapInstance.current = newMap;
+  
+    newMap.on('load', () => {
+      if (isMounted.current) {
+        newMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        addOpenWeatherMapLayer(newMap); // Add OpenWeatherMap Layer
+        fetchWeatherDataAndAddMarkers(); // Fetch weather and add markers
+      }
+    });
+  
+    // Cleanup function to remove markers and map
+    return () => {
+      isMounted.current = false;
+      markersRef.current.forEach(marker => marker.remove());
+      markersRef.current = [];
+      if (mapInstance.current) {
+        mapInstance.current.remove();
+        mapInstance.current = null;
+      }
+    };
+  }, [fetchWeatherDataAndAddMarkers]);  // Including the memoized function in the dependency array
+  
   return (
     <Grid alignItems={'center'} style={{ width: '100%', height: '100%' }}>
       <Grid id="weather-map" style={{ height: '100%', width: '100%' }}></Grid>

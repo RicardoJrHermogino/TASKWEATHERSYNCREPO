@@ -1,4 +1,4 @@
-// src/utils/weatherUtils.js
+// src/utils/weatherIcon.js
 import dayjs from 'dayjs';
 
 // Function to determine if it's night time based on weather ID and time
@@ -104,3 +104,5 @@ export const getWeatherIcon = (weatherId, selectedDate, selectedTime, isCurrentW
         return "/3d-weather-icons/default/01.png"; // Default icon
     }
   };
+
+  export default getWeatherIcon;

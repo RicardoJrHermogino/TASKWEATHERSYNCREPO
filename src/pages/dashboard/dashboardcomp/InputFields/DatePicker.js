@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import {
   FormControl,
   InputLabel,
@@ -7,31 +8,64 @@ import {
   OutlinedInput,
   InputAdornment,
 } from "@mui/material";
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday"; // Import the calendar icon
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import dayjs from "dayjs";
+import axios from 'axios';
 
 const DatePicker = ({ selectedDate, setSelectedDate, MenuProps }) => {
-  // Generate an array of the next 6 days (including today)
-  const nextSixDays = Array.from({ length: 6 }, (_, i) =>
-    dayjs().add(i, "day").format("YYYY-MM-DD")
-  );
+  const [availableDates, setAvailableDates] = useState([]);
+  const currentDate = dayjs().format('YYYY-MM-DD');
+
+  useEffect(() => {
+    const fetchAvailableDates = async () => {
+      try {
+        const response = await axios.get('/api/getWeatherData');
+        const forecastData = response.data;
+
+        // Extract unique dates from the forecast data and filter out past dates
+        const uniqueDates = [...new Set(forecastData.map(item => 
+          dayjs(item.date).format('YYYY-MM-DD')
+        ))]
+        .filter(date => !dayjs(date).isBefore(dayjs(), 'day'))
+        .sort();
+
+        setAvailableDates(uniqueDates);
+
+        // If selected date is not in available dates, select the first available date
+        if (!uniqueDates.includes(selectedDate)) {
+          setSelectedDate(uniqueDates[0] || '');
+        }
+      } catch (error) {
+        console.error('Error fetching available dates:', error);
+        // Fallback to next 6 days if API fails
+        const fallbackDates = Array.from({ length: 6 }, (_, i) =>
+          dayjs().add(i, "day").format("YYYY-MM-DD")
+        );
+        setAvailableDates(fallbackDates);
+        if (!selectedDate || !fallbackDates.includes(selectedDate)) {
+          setSelectedDate(fallbackDates[0]);
+        }
+      }
+    };
+
+    fetchAvailableDates();
+  }, [selectedDate, setSelectedDate]);
 
   return (
-    <Grid item xs={12} sm={12} md={12} lg={12} align="center">
+    <Grid item xs={12} sm={12} align="center">
       <FormControl fullWidth variant="outlined">
         <InputLabel id="date-select-label">Date</InputLabel>
         <Select
           labelId="date-select-label"
           value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)} // Handle date change
+          onChange={(e) => setSelectedDate(e.target.value)}
           label="Date"
-          displayEmpty
           input={
             <OutlinedInput
               label="Date"
               startAdornment={
                 <InputAdornment position="start">
-                  <CalendarTodayIcon /> {/* Calendar icon */}
+                  <CalendarTodayIcon />
                 </InputAdornment>
               }
             />
@@ -39,35 +73,34 @@ const DatePicker = ({ selectedDate, setSelectedDate, MenuProps }) => {
           MenuProps={{
             PaperProps: {
               style: {
-                maxHeight: "500px", // Increased max height for dropdown
-                overflowY: "auto", // Enable vertical scrolling
+                maxHeight: '390px',
+                overflowY: 'auto',
+                marginTop: '0',
               },
             },
             anchorOrigin: {
-              vertical: "top", // Anchor the dropdown to the top of the select input
-              horizontal: "left", // Align to the left
+              vertical: 'top',
+              horizontal: 'left',
             },
             transformOrigin: {
-              vertical: "bottom", // Open the dropdown from the bottom
-              horizontal: "left", // Align to the left
+              vertical: 'bottom',
+              horizontal: 'left',
             },
-            ...MenuProps, // Spread additional MenuProps if passed
+            ...MenuProps,
           }}
           sx={{
-            borderRadius: "10px", // Ensures the outline is rounded
-            "& .MuiOutlinedInput-root": {
-              borderRadius: "10px", // Rounds the input itself
+            '& .MuiOutlinedInput-root': {
+              borderRadius: '10px',
             },
-            "& fieldset": {
-              borderRadius: "10px", // Rounds the border for the dropdown
+            '& fieldset': {
+              borderRadius: '10px',
             },
-            backgroundColor: "#f5f7fa",
+            backgroundColor: '#f5f7fa',
           }}
         >
-
-          {nextSixDays.map((date) => (
+          {availableDates.map((date) => (
             <MenuItem key={date} value={date}>
-              {dayjs(date).format("MMMM D, YYYY")} {/* Display only the date */}
+              {dayjs(date).format("MMMM D, YYYY")}
             </MenuItem>
           ))}
         </Select>

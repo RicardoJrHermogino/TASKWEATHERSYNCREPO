@@ -1,4 +1,4 @@
-package com.taskweathersync.app;
+package com.example.taskweathersync;
 
 import com.getcapacitor.BridgeActivity;
 
