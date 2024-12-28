@@ -27,15 +27,6 @@ const defaultTheme = createTheme({
   palette: {
     primary: {
       main: '#007AFF',
-    },
-    error: {
-      main: '#FF3B30',
-    },
-    warning: {
-      main: '#FF9500',
-    },
-    success: {
-      main: '#34C759',
     }
   }
 });
@@ -139,14 +130,14 @@ const AllRecommendedTasksPage = () => {
     try {
       const validatedData = validateWeatherData(weatherData);
       if (!validatedData) return [];
-
+  
       const { main, wind, clouds, weather } = validatedData;
       const weatherConditionCode = weather[0]?.id;
-
+  
       return tasks.filter(task => {
         try {
           const weatherRestrictions = JSON.parse(task.weatherRestrictions || '[]');
-
+  
           return (
             main.temp >= task.requiredTemperature_min &&
             main.temp <= task.requiredTemperature_max &&
@@ -346,97 +337,95 @@ const AllRecommendedTasksPage = () => {
 
   return (
     <ThemeProvider theme={defaultTheme}>
-      <Container maxWidth="md" sx={{ mt: 4, minHeight: '100vh', pb: 4, position: 'relative' }}>
-        <IconButton 
-          onClick={handleGoBack}
-          sx={{
-            position: 'absolute',
-            left: isSmallScreen ? -10 : 0,
-            top: -40,
-            color: '#007AFF'
-          }}
-        >
-          <ArrowBackIosIcon />
-        </IconButton>
+    <Container maxWidth="md" sx={{ mt: 4, minHeight: '100vh', pb: 4, position: 'relative' }}>
+      <IconButton 
+        onClick={handleGoBack}
+        sx={{
+          position: 'absolute',
+          left: isSmallScreen ? -10 : 0,
+          top: -40,
+          color: '#007AFF'
+        }}
+      >
+        <ArrowBackIosIcon />
+      </IconButton>
 
-        <Typography variant="h5" component="h1" gutterBottom sx={{ mb: 3, textAlign: 'start', fontWeight: 'bold', pl: 4 }}>
-          Recommended Tasks
-        </Typography>
-        
-        <Typography>
-          Recommended Tasks for {location?.replace(/"/g, '').trim() || 'Unknown Location'}
-          {selectedDate && ` on ${selectedDate}`}
-        </Typography>
+      <Typography variant="h5" component="h1" gutterBottom sx={{ mb: 3, textAlign: 'start', fontWeight: 'bold', pl: 4 }}>
+        Recommended Tasks
+      </Typography>
+      
+      <Typography>
+        Recommended Tasks for {location?.replace(/"/g, '').trim() || 'Unknown Location'}
+        {selectedDate && ` on ${selectedDate}`}
+      </Typography>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 3, borderRadius: 2, '& .MuiAlert-icon': { color: '#FF3B30' } }}>
-            {error}
-          </Alert>
-        )}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+          {error}
+        </Alert>
+      )}
 
-        {recommendedTasksByInterval.length === 0 ? (
-          <Alert severity="info" sx={{ borderRadius: 2, backgroundColor: '#E5E5EA', color: '#8E8E93' }}>
-            No tasks recommended for the selected date and weather conditions.
-          </Alert>
-        ) : (
-          <>
-            <Grid container spacing={1} sx={{ mb: 3 }}>
-              <Grid item xs={12}>
-                <Tabs
-                  value={selectedTabIndex}
-                  onChange={handleTabChange}
-                  variant="scrollable"
-                  scrollButtons="auto"
-                  sx={{ 
-                    '& .MuiTabs-indicator': {
-                      backgroundColor: 'primary.main',
-                      height: 3
-                    },
-                    '& .MuiTabs-flexContainer': {
-                      justifyContent: 'center',
-                      display: 'flex',
-                      flexWrap: 'wrap'
-                    },
-                    '& .MuiTab-root': {
-                      width: 'calc(100% / 3)',
-                      maxWidth: 'none',
-                      textTransform: 'none',
-                      fontWeight: 500,
-                      color: '#8E8E93',
-                      '&.Mui-selected': { 
-                        color: '#007AFF',
-                        fontWeight: 600 
-                      }
+      {recommendedTasksByInterval.length === 0 ? (
+        <Alert severity="info" sx={{ borderRadius: 2, backgroundColor: '#E5E5EA', color: '#8E8E93' }}>
+          No tasks recommended for the selected date and weather conditions.
+        </Alert>
+      ) : (
+        <>
+          <Grid container spacing={1} sx={{ mb: 3 }}>
+            <Grid item xs={12}>
+              <Tabs
+                value={selectedTabIndex}
+                onChange={handleTabChange}
+                variant="scrollable"
+                scrollButtons="auto"
+                sx={{ 
+                  '& .MuiTabs-indicator': {
+                    backgroundColor: 'primary.main',
+                    height: 3
+                  },
+                  '& .MuiTabs-flexContainer': {
+                    justifyContent: 'center',
+                    display: 'flex',
+                    flexWrap: 'wrap'
+                  },
+                  '& .MuiTab-root': {
+                    width: 'calc(100% / 3)',
+                    maxWidth: 'none',
+                    textTransform: 'none',
+                    fontWeight: 500,
+                    color: '#8E8E93',
+                    '&.Mui-selected': { 
+                      color: '#007AFF',
+                      fontWeight: 600 
                     }
-                  }}
-                >
-                  {recommendedTasksByInterval.map((interval, index) => (
-                    <Tab key={index} label={interval.time} />
-                  ))}
-                </Tabs>
-              </Grid>
+                  }
+                }}
+              >
+                {recommendedTasksByInterval.map((interval, index) => (
+                  <Tab key={index} label={interval.time} />
+                ))}
+              </Tabs>
             </Grid>
+          </Grid>
 
-            <Card sx={{ borderRadius: 3, boxShadow: '0 10px 20px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
-              <CardContent sx={{ p: isSmallScreen ? 2 : 3 }}>
-                  <IntervalWeatherSummary 
-                      interval={recommendedTasksByInterval[selectedTabIndex]} 
-                      getDifficultyColor={getDifficultyColor}
-                      onTaskClick={handleTaskClick}  // Add this line
-                  />
-              </CardContent>
-            </Card>
-          </>
-        )}
-      </Container>
-
+          <Card sx={{ borderRadius: 3, boxShadow: '0 10px 20px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+            <CardContent sx={{ p: isSmallScreen ? 2 : 3 }}>
+              <IntervalWeatherSummary 
+                interval={recommendedTasksByInterval[selectedTabIndex]} 
+                onTaskClick={handleTaskClick}
+              />
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       <TaskModal 
         task={selectedTask}
         open={isModalOpen}
         onClose={handleCloseModal}
       />
-    </ThemeProvider>
+    </Container>
+  </ThemeProvider>
   );
 };
 

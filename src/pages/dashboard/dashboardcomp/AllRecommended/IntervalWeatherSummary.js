@@ -12,11 +12,7 @@ import {
 } from '@mui/icons-material';
 import { WeatherIcon } from './WeatherIcon';
 
-export const IntervalWeatherSummary = ({ 
-  interval, 
-  getDifficultyColor,
-  onTaskClick // Add this prop
-}) => {
+export const IntervalWeatherSummary = ({ interval, onTaskClick }) => {
   return (
     <>
       <Box 
@@ -40,37 +36,33 @@ export const IntervalWeatherSummary = ({
       </Box>
 
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        {[
-          { icon: <SunIcon color="warning" />, value: `${interval.weather.main.temp}°C`, label: 'Temperature' },
-        ].map((item, index) => (
-          <Grid item xs={6} key={index}>
-            <Box 
-              sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center',
-                backgroundColor: '#F2F2F7',
-                borderRadius: 2,
-                p: 1
-              }}
+        <Grid item xs={6}>
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center',
+              backgroundColor: '#F2F2F7',
+              borderRadius: 2,
+              p: 1
+            }}
+          >
+            <SunIcon color="warning" />
+            <Typography 
+              variant="body2" 
+              color="text.secondary" 
+              sx={{ mt: 0.5, fontWeight: 500 }}
             >
-              {item.icon}
-              <Typography 
-                variant="body2" 
-                color="text.secondary" 
-                sx={{ mt: 0.5, fontWeight: 500 }}
-              >
-                {item.value}
-              </Typography>
-              <Typography 
-                variant="caption" 
-                color="text.disabled"
-              >
-                {item.label}
-              </Typography>
-            </Box>
-          </Grid>
-        ))}
+              {`${interval.weather.main.temp}°C`}
+            </Typography>
+            <Typography 
+              variant="caption" 
+              color="text.disabled"
+            >
+              Temperature
+            </Typography>
+          </Box>
+        </Grid>
       </Grid>
 
       {interval.tasks.length === 0 ? (
@@ -101,8 +93,7 @@ export const IntervalWeatherSummary = ({
               p: 2, 
               mb: 2, 
               display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
+              flexDirection: 'column',
               backgroundColor: '#FFFFFF',
               border: '1px solid rgba(0,0,0,0.08)',
               cursor: 'pointer',
@@ -118,42 +109,25 @@ export const IntervalWeatherSummary = ({
               }
             }}
           >
-            <Box>
-              <Typography 
-                variant="subtitle1" 
-                sx={{ fontWeight: 600, color: 'text.primary' }}
-              >
-                {task.task_name}
-              </Typography>
-              <Typography 
-                variant="body2" 
-                color="text.secondary"
-                sx={{
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}
-              >
-                {task.description}
-              </Typography>
-            </Box>
-            <Chip 
-              label={task.difficulty} 
-              color={
-                task.difficulty === 'Easy' ? 'success' : 
-                task.difficulty === 'Medium' ? 'warning' : 
-                'error'
-              }
-              size="small" 
-              sx={{ 
-                fontWeight: 500,
-                borderRadius: 2,
-                ml: 2,
-                flexShrink: 0
-              }} 
-            />
+            <Typography 
+              variant="subtitle1" 
+              sx={{ fontWeight: 600, color: 'text.primary' }}
+            >
+              {task.task_name}
+            </Typography>
+            <Typography 
+              variant="body2" 
+              color="text.secondary"
+              sx={{
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}
+            >
+              {task.description}
+            </Typography>
           </Paper>
         ))
       )}
